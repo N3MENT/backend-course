@@ -2,11 +2,11 @@
 
 ## Objetivo
 
-Llevar la API de solicitudes que vivía en memoria a una base de datos real. El estado deja
-de ser un array en el proceso Node: pasa a **PostgreSQL** (Supabase), se conserva el
-historial de cada cambio de estado (estado → antecedentes) y las escrituras que tocan dos
-tablas se protegen con **transacciones**. Además se exige conectar, consultar y evidenciar
-el trabajo contra la base, sin filtraciones de secretos.
+Llevar la API de tickets que vivía en memoria a una base de datos real. El estado deja de
+ser un array en el proceso Node: pasa a **PostgreSQL** (Supabase), se conserva el historial
+de cada cambio de estado (estado → antecedentes) y las escrituras que tocan dos tablas se
+protegen con **transacciones**. Además se exige conectar, consultar y evidenciar el trabajo
+contra la base, sin filtraciones de secretos.
 
 ## Estructura
 
@@ -26,17 +26,39 @@ activities/class-04/
 El proyecto de esta entrega vive en `activities/class-04/project/`. La base de referencia
 (no modificada) está en `activity resources/request-api-v4-starter/`.
 
+## Diseño (fase 1, elaborado con respuestas propias)
+
+* **Recurso**: Support Ticket — mismo recurso que la clase 3, ahora persistente.
+* **Identidad**: `BIGINT GENERATED ALWAYS AS IDENTITY` — la asigna PostgreSQL (requerimiento
+  del starter oficial; el contrato cambia: `id` pasa de UUID string a número). Documentado en
+  `data-model.md`.
+* **Máquina de estados**: idéntica a clase 3 (`pending → in_progress → resolved` teminal;
+  `pending/in_progress → cancelled` terminal). Respaldada con `CHECK` en la base.
+* **Historial**: tabla `ticket_status_history`, una fila por nacimiento y transición,
+  `previous_status NULL` = nacimiento. Nuevo endpoint `GET /api/v1/support-tickets/:id/history`
+  (orden cronológico `changedAt ASC`).
+* **Transacciones**: `withTransaction` con un único cliente del pool, `BEGIN`/`COMMIT`/
+  `ROLLBACK` y `client.release()` en `finally`. `createTicket` y `patchTicket` (con cambio de
+  status) son atómicos.
+* **Errores**: mismo formato de clase 3 (`{ error: { code, message, details?, timestamp } }`)
+  + categorías de persistencia: `DATABASE_UNAVAILABLE` (503), `DB_ERROR` (500),
+  `INTERNAL_ERROR` (500). Nunca se filtran secretos de `pg` ni `DATABASE_URL`.
+* **Base protege la forma** (NOT NULL, CHECK, FK, IDENTITY) **y la aplicación las reglas**
+  (transiciones, terminales, filtros).
+* **Decisiones**: `001-terminal-states-instead-of-delete.md` y
+  `002-preserve-status-history.md`.
+
 ## Fases
 
-1. **Diseño sin IA** — las seis decisiones (modelo, contrato de persistencia, queries,
-   transacción, errores y casos) se documentan **antes** de escribir código o consultar IA.
-   Se marca con el commit y tag `class-04-design`.
+1. **Diseño sin IA** — modelo, contrato de persistencia, queries, transacción, errores y
+   casos se documentan **antes** de escribir código o consultar IA. Se marca con el commit y
+   tag `class-04-design`.
 2. **Configuración de la base** — proyecto individual en Supabase, `Session pooler`,
    `DATABASE_URL` en `.env` (nunca commiteado), `npm run db:check`, migraciones 001 y 002
    vía SQL Editor y datos semilla.
 3. **Implementación** — `pool.js`, `transaction.js`, servicios y mappers; el store pasa a
-   SQL parametrizado con las mismas 5 rutas (incluida `GET /requests/:id/history`),
-   transacciones con rollback y errores sin secretos.
+   SQL parametrizado con las 5 rutas (incluida `GET /:id/history`), transacciones con
+   rollback y errores sin secretos.
 4. **IA con contrato** — la IA solo revisa luego de la marca de diseño; no puede cambiar en
    silencio tablas, columnas, rutas, estados ni transiciones. Todo queda registrado en
    `ai-usage.md`.
@@ -50,9 +72,9 @@ El proyecto de esta entrega vive en `activities/class-04/project/`. La base de r
 
 | Fase | Estado |
 | ---- | ------ |
-| 1 · Diseño sin IA | ✅ Commit + tag `class-04-design` |
-| 2 · Configuración de la base | ✅ Supabase `xfywzcdzzcmeqpvwymfw`, Session pooler, `npm run db:check` OK, migraciones + seed |
-| 3 · Implementación | ✅ Commits progresivos + fix contrato `id` numérico |
-| 4 · IA con contrato | ✅ `ai-usage.md` |
-| 5 · Decisión | ✅ `002-preserve-status-history.md` |
-| 6 · Evidencia y reflexión | ✅ Matriz (12 casos) observada + `reflection.md` |
+| 1 · Diseño sin IA | ✅ Documentos rediseñados al diseño propio (support_tickets) |
+| 2 · Configuración de la base | ⏳ **Bloqueada: requiere cuenta Supabase propia + `DATABASE_URL`** (Session pooler) |
+| 3 · Implementación | ⏳ Pendiente (requiere fase 2) |
+| 4 · IA con contrato | ⏳ Pendiente — se registra al implementar |
+| 5 · Decisión | ✅ `001-terminal-states-instead-of-delete.md` + `002-preserve-status-history.md` |
+| 6 · Evidencia y reflexión | ⏳ Pendiente — matriz esperada lista

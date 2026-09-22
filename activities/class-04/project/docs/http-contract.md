@@ -1,9 +1,16 @@
-# HTTP contract — Request API v4
+# HTTP contract — Support Tickets API v4
 
-Contrato vigente de la API. Hereda íntegro el contrato de clase 3 (los cuatro endpoints
-existentes NO cambian) y añade la consulta de historial (`GET /requests/:id/history`).
-Ver también la máquina de estados en `src/modules/requests/request-status.js` y el mapa de
-errores en `activities/class-04/error-map.md`.
+Contrato vigente de la API. Hereda el contrato de clase 3 (los endpoints existentes no
+cambian en intención) y añade la consulta de historial (`GET /api/v1/support-tickets/:id/history`).
+Ver también la máquina de estados en `src/domain/ticket-status.js` y el mapa de errores en
+`activities/class-04/error-map.md`.
+
+## Cambio documentado respecto a clase 3
+
+* **`id` pasa de string (UUID v4) a número** generado por PostgreSQL
+  (`BIGINT GENERATED ALWAYS AS IDENTITY`), conforme al requerimiento de la clase 4
+  (starter oficial del curso: la identidad la asigna la base). Todo lo demás del contrato se
+  conserva.
 
 ## Formato de error (común a toda la API)
 
@@ -11,7 +18,11 @@ errores en `activities/class-04/error-map.md`.
 {
   "error": {
     "code": "CODE_NAME",
-    "message": "Human readable message"
+    "message": "Human readable message",
+    "details": [
+      { "field": "...", "issue": "...", "code": "..." }
+    ],
+    "timestamp": "2026-09-22T14:42:29.174Z"
   }
 }
 ```
@@ -21,30 +32,33 @@ errores en `activities/class-04/error-map.md`.
 | Código | Situación |
 | ------ | --------- |
 | `MISSING_TITLE` | `POST` o `PATCH` sin `title` válido |
+| `MISSING_DESCRIPTION` | `POST` o `PATCH` sin `description` válida |
 | `INVALID_PRIORITY` | `priority` con valor desconocido (body o query) |
 | `INVALID_STATUS` | `status` con valor desconocido (body o query) |
 | `EMPTY_PATCH` | `PATCH` sin campos modificables |
-| `REQUEST_NOT_FOUND` | `GET /requests/:id`, `GET /requests/:id/history` o `PATCH /requests/:id` inexistente |
-| `INVALID_STATUS_TRANSITION` | transición no permitida por la máquina de estados |
-| `REQUEST_IN_TERMINAL_STATUS` | intento de modificar una solicitud en estado terminal |
+| `MALFORMED_JSON` | body que no es JSON válido |
+| `TICKET_NOT_FOUND` | `GET /:id`, `GET /:id/history` o `PATCH /:id` inexistente |
+| `INVALID_STATE_TRANSITION` | transición no permitida por la máquina de estados |
+| `TICKET_IN_TERMINAL_STATUS` | intento de modificar un ticket en estado terminal |
 
 **Códigos nuevos (clase 4):**
 
 | Código | Situación | Estado |
 | ------ | --------- | -----: |
 | `DATABASE_UNAVAILABLE` | la base de datos no responde | `503` |
-| `INTERNAL_ERROR` | error inesperado (detalle solo en el log del servidor) | `500` |
+| `DB_ERROR` | error de query/integridad controlado (detalle solo en log) | `500` |
+| `INTERNAL_ERROR` | error inesperado (detalle solo en log) | `500` |
 
 > Nunca se filtran al cliente los errores crudos de `pg` ni el `DATABASE_URL`.
 
 ---
 
-## `GET /requests`
+## `GET /api/v1/support-tickets`
 
-* **Intención**: listar la colección completa de solicitudes, opcionalmente filtrada.
-* **Path**: `/requests`
-* **Query**: `status` (opcional, ∈ `{open, in_progress, resolved, closed, cancelled}`)
-  y `priority` (opcional, ∈ `{low, medium, high}`). Ambos son combinables.
+* **Intención**: listar la colección completa de tickets, opcionalmente filtrada.
+* **Path**: `/api/v1/support-tickets`
+* **Query**: `status` (opcional, ∈ `{pending, in_progress, resolved, cancelled}`) y
+  `priority` (opcional, ∈ `{low, medium, high, urgent}`). Ambos son combinables (AND).
 * **Body**: ninguno.
 * **Respuesta exitosa**: `200` con un arreglo. Sin coincidencias, `200 []`.
 * **Errores**: `400` con `INVALID_STATUS` o `INVALID_PRIORITY` si el valor de un filtro no
@@ -53,95 +67,100 @@ errores en `activities/class-04/error-map.md`.
 **Ejemplo (filtrado combinado)**
 
 ```http
-GET /requests?status=open&priority=high
+GET /api/v1/support-tickets?status=pending&priority=urgent
 
 HTTP/1.1 200 OK
 [
   {
     "id": 1,
-    "title": "Projector does not turn on",
-    "description": "The projector in room 204 shows no image during class.",
-    "status": "open",
-    "priority": "high",
-    "createdAt": "2026-08-28T14:00:00.000Z",
-    "updatedAt": "2026-08-28T14:00:00.000Z"
+    "title": "Error al exportar reporte PDF",
+    "description": "Al hacer clic en \"Exportar\", la pantalla se queda congelada.",
+    "priority": "urgent",
+    "status": "pending",
+    "createdAt": "2026-09-22T08:00:00.000Z",
+    "updatedAt": "2026-09-22T08:00:00.000Z"
   }
 ]
 ```
 
 ---
 
-## `GET /requests/:id`
+## `GET /api/v1/support-tickets/:id`
 
-* **Intención**: obtener una solicitud concreta por su identificador.
-* **Path**: `/requests/:id`
+* **Intención**: obtener un ticket concreto por su identificador.
+* **Path**: `/api/v1/support-tickets/:id`
 * **Respuesta exitosa**: `200` con el recurso completo.
-* **Errores**: `404` con `REQUEST_NOT_FOUND` si no existe ese id.
+* **Errores**: `404` con `TICKET_NOT_FOUND` si no existe ese id.
 
 **Ejemplo (inexistente)**
 
 ```http
-GET /requests/999
+GET /api/v1/support-tickets/999
 
 HTTP/1.1 404 Not Found
 {
   "error": {
-    "code": "REQUEST_NOT_FOUND",
-    "message": "Request 999 was not found"
+    "code": "TICKET_NOT_FOUND",
+    "message": "No existe un ticket con id 999.",
+    "details": [
+      { "field": "id", "issue": "No se encontró el ticket 999.", "code": "TICKET_NOT_FOUND" }
+    ],
+    "timestamp": "2026-09-22T14:42:29.174Z"
   }
 }
 ```
 
 ---
 
-## `GET /requests/:id/history`
+## `GET /api/v1/support-tickets/:id/history`
 
-* **Intención**: obtener la historia de estados de una solicitud en orden cronológico.
-* **Path**: `/requests/:id/history`
-* **Respuesta exitosa**: `200` con un arreglo de eventos. Toda solicitud que existe tiene
-  al menos su evento de nacimiento. Los eventos llegan ordenados de más antiguo a más
-  reciente (`changed_at ASC`).
-* **Errores**: `404` con `REQUEST_NOT_FOUND` si no existe esa solicitud.
+* **Intención**: obtener la historia de estados de un ticket en orden cronológico.
+* **Path**: `/api/v1/support-tickets/:id/history`
+* **Respuesta exitosa**: `200` con un arreglo de eventos. Todo ticket que existe tiene al
+  menos su evento de nacimiento. Los eventos llegan ordenados de más antiguo a más reciente
+  (`changedAt ASC`).
+* **Errores**: `404` con `TICKET_NOT_FOUND` si no existe ese ticket.
 
-**Ejemplo (solicitud con una transición)**
+**Ejemplo (ticket con una transición)**
 
 ```http
-GET /requests/2/history
+GET /api/v1/support-tickets/2/history
 
 HTTP/1.1 200 OK
 [
   {
     "previousStatus": null,
-    "newStatus": "open",
-    "changedAt": "2026-08-18T09:30:00.000Z"
+    "newStatus": "pending",
+    "changedAt": "2026-09-22T08:05:00.000Z"
   },
   {
-    "previousStatus": "open",
+    "previousStatus": "pending",
     "newStatus": "in_progress",
-    "changedAt": "2026-08-19T11:15:00.000Z"
+    "changedAt": "2026-09-22T09:00:00.000Z"
   }
 ]
 ```
 
 ---
 
-## `POST /requests`
+## `POST /api/v1/support-tickets`
 
-* **Intención**: crear una nueva solicitud de mantenimiento.
-* **Body**: acepta `title` (requerido), `description` (opcional) y `priority` (opcional,
-  → `medium`). El servidor **ignora** los campos que el cliente no controla (`id`,
-  `status`, `createdAt`, `updatedAt`, y cualquier campo desconocido).
+* **Intención**: crear un nuevo ticket de soporte.
+* **Body**: acepta `title` (requerido), `description` (requerida) y `priority` (opcional,
+  → `medium`). El servidor **ignora** los campos que el cliente no controla (`id`, `status`,
+  `createdAt`, `updatedAt`, y cualquier campo desconocido).
 * **Respuesta exitosa**: `201 Created` con el recurso completo: `id` generado por
-  PostgreSQL (`IDENTITY`), `status` `open`, y `createdAt`/`updatedAt` generados por la
+  PostgreSQL (`IDENTITY`), `status` `pending`, y `createdAt`/`updatedAt` generados por la
   base (`CURRENT_TIMESTAMP`). El evento de nacimiento queda registrado en el historial
   (misma transacción).
-* **Errores**: `400` con `MISSING_TITLE` si falta el título; `400` con `INVALID_PRIORITY`
-  si llega una prioridad desconocida.
+* **Errores**: `400` con `MISSING_TITLE` si falta el título; `400` con
+  `MISSING_DESCRIPTION` si falta la descripción; `400` con `INVALID_PRIORITY` si llega una
+  prioridad desconocida.
 
 **Ejemplo**
 
 ```http
-POST /requests
+POST /api/v1/support-tickets
 {
   "title": "Broken door lock",
   "description": "The lock on room 101 does not turn properly.",
@@ -153,20 +172,20 @@ HTTP/1.1 201 Created
   "id": 6,
   "title": "Broken door lock",
   "description": "The lock on room 101 does not turn properly.",
-  "status": "open",
+  "status": "pending",
   "priority": "high",
-  "createdAt": "2026-08-28T15:30:00.000Z",
-  "updatedAt": "2026-08-28T15:30:00.000Z"
+  "createdAt": "2026-09-22T15:30:00.000Z",
+  "updatedAt": "2026-09-22T15:30:00.000Z"
 }
 ```
 
 ---
 
-## `PATCH /requests/:id`
+## `PATCH /api/v1/support-tickets/:id`
 
-* **Intención**: actualizar parcialmente una solicitud existente. Si el cambio incluye
-  `status`, la transición se valida contra la máquina de estados y su evento se registra
-  en el historial como parte de la misma transacción.
+* **Intención**: actualizar parcialmente un ticket existente. Si el cambio incluye `status`,
+  la transición se valida contra la máquina de estados y su evento se registra en el
+  historial como parte de la misma transacción.
 * **Body**: campos modificables `title`, `description`, `priority`, `status`. Campos del
   servidor (`id`, `createdAt`, `updatedAt`) se **ignoran** si se envían.
 * **Respuesta exitosa**: `200` con el recurso actualizado (`updatedAt` se renueva).
@@ -178,49 +197,54 @@ HTTP/1.1 201 Created
 | `status` con valor desconocido | `400` | `INVALID_STATUS` |
 | `priority` con valor desconocido | `400` | `INVALID_PRIORITY` |
 | `title` vacío | `400` | `MISSING_TITLE` |
-| Recurso inexistente | `404` | `REQUEST_NOT_FOUND` |
-| Transición no permitida | `409` | `INVALID_STATUS_TRANSITION` |
-| Solicitud en estado terminal | `409` | `REQUEST_IN_TERMINAL_STATUS` |
+| `description` vacía | `400` | `MISSING_DESCRIPTION` |
+| Recurso inexistente | `404` | `TICKET_NOT_FOUND` |
+| Transición no permitida | `409` | `INVALID_STATE_TRANSITION` |
+| Ticket en estado terminal | `409` | `TICKET_IN_TERMINAL_STATUS` |
 
-La misma petición puede ser válida hoy (la solicitud está `resolved`) e inválida mañana
-(volvió a `in_progress`): la forma no cambió, el estado sí. Por eso las transiciones se
-rechazan con `409` (petición bien formada, prohibida por el estado actual) y no con `400`
-(que es para la forma).
+La misma petición puede ser válida hoy (el ticket está `in_progress`) e inválida mañana (ya
+está `resolved`): la forma no cambió, el estado sí. Por eso las transiciones se rechazan con
+`409` (petición bien formada, prohibida por el estado actual) y no con `400` (que es para la
+forma).
 
 **Ejemplo (éxito, con cambio de estado)**
 
 ```http
-PATCH /requests/1
+PATCH /api/v1/support-tickets/1
 {
   "status": "in_progress",
-  "priority": "high"
+  "priority": "urgent"
 }
 
 HTTP/1.1 200 OK
 {
   "id": 1,
-  "title": "Projector does not turn on",
-  "description": "The projector in room 204 shows no image during class.",
+  "title": "Error al exportar reporte PDF",
+  "description": "Al hacer clic en \"Exportar\", la pantalla se queda congelada.",
   "status": "in_progress",
-  "priority": "high",
-  "createdAt": "2026-08-28T14:00:00.000Z",
-  "updatedAt": "2026-08-29T09:15:00.000Z"
+  "priority": "urgent",
+  "createdAt": "2026-09-22T08:00:00.000Z",
+  "updatedAt": "2026-09-22T15:35:00.000Z"
 }
 ```
 
 **Ejemplo (transición inválida)**
 
 ```http
-PATCH /requests/1
+PATCH /api/v1/support-tickets/1
 {
-  "status": "closed"
+  "status": "resolved"
 }
 
 HTTP/1.1 409 Conflict
 {
   "error": {
-    "code": "INVALID_STATUS_TRANSITION",
-    "message": "Cannot move a request from open to closed"
+    "code": "INVALID_STATE_TRANSITION",
+    "message": "No se puede pasar de 'pending' a 'resolved'.",
+    "details": [
+      { "field": "status", "issue": "La transición 'pending' → 'resolved' no está permitida.", "code": "INVALID_STATE_TRANSITION" }
+    ],
+    "timestamp": "2026-09-22T14:42:29.174Z"
   }
 }
 ```

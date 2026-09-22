@@ -78,23 +78,24 @@ Rutas: `GET /api/v1/support-tickets` (con filtros `status` y `priority` en AND),
 terminales. Los detalles están en `project/docs/http-contract.md` y la verificación en
 `activities/class-03/test-matrix.md`.
 
-### Clase 4 — API de solicitudes con PostgreSQL
+### Clase 4 — API de tickets con PostgreSQL
 
-Requiere una base en Supabase. Pasos:
+Requiere una base propia en Supabase (la identidad la asigna la base: `IDENTITY`). Pasos:
 
 ```bash
 cd activities/class-04/project
 npm install
-copy .env.example .env   # pegar el DATABASE_URL (Session pooler)
+copy .env.example .env   # pegar tu DATABASE_URL (Session pooler, puerto 5432)
 npm run db:check         # verifica conexión sin imprimir secretos
 npm start
 ```
 
-Las migraciones (`database/migrations/001` y `002`) y el seed (`database/seed.sql`) se
-ejecutan primero en el SQL Editor de Supabase.
+Las migraciones (`database/migrations/001_create_support_tickets.sql` y `002`) y el seed
+(`database/seed.sql`) se ejecutan primero en el SQL Editor de Supabase.
 
-Rutas: `GET /requests` (con filtros `status` y `priority`), `GET /requests/:id`,
-`GET /requests/:id/history`, `POST /requests`, `PATCH /requests/:id`. Detalles en
+Rutas: `GET /api/v1/support-tickets` (con filtros `status` y `priority`),
+`GET /api/v1/support-tickets/:id`, `GET /api/v1/support-tickets/:id/history`,
+`POST /api/v1/support-tickets`, `PATCH /api/v1/support-tickets/:id`. Detalles en
 `project/docs/http-contract.md` y la verificación en `activities/class-04/test-matrix.md`.
 
 ### Clase 5 — taller de identidad (backend)

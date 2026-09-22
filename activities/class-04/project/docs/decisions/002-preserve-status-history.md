@@ -1,85 +1,81 @@
-# Preserve the status history of every request
+# Conservar el historial de estados
 
 > Decision record · `project/docs/decisions/002-preserve-status-history.md`
 
 ## Context
 
-The persistent model in `database/migrations/` needs to answer questions that the current
-state alone cannot: when was a request opened? What statuses did it pass through before a
-rejection or a resolution? Why did a request go back to `in_progress`?
-
-Storing only the current `status` column (as class 3 did) tells you *where the request is
-now* but not *how it got here*. The class-04 requirement explicitly asks to keep track of
-"state → antecedents" (the history of each change of state), which means any change of
-status must be recorded as an event.
+El modelo persistente necesita responder preguntas que el estado actual solo no puede: cuándo
+se abrió un ticket, por qué estados pasó antes de resolverse o cancelarse, por qué volvió a
+`in_progress`. Guardar solo la columna `status` actual (como en clase 3) dice *dónde está* el
+ticket, pero no *cómo llegó ahí*. El requerimiento de la clase 4 pide explícitamente
+"estado → antecedentes": conservar el historial de cada cambio de estado.
 
 ## Options
 
-### Option 1: Keep only the current status
+### Option 1: Conservar solo el status actual
 
 Benefits:
 
-* Minimal schema: no second table; `requests.status` already exists.
-* No extra writes on `PATCH`; the update is a single `UPDATE`.
+* Esquema mínimo: no hay segunda tabla; `support_tickets.status` ya existe.
+* Sin escrituras extra en `PATCH`: la actualización es un solo `UPDATE`.
 
 Costs:
 
-* History is lost: after `open → in_progress → resolved`, all that remains is `resolved`.
-* No audit trail: cannot know whether a request was cancelled after being opened, or
-  whether an answer was ever rejected and re-opened.
-* The class-04 requirement of "state → antecedents" is not satisfied, so the model would
-  be incomplete.
+* La historia se pierde: después de `pending → in_progress → resolved` solo queda `resolved`.
+* Sin auditoría: no se puede saber si un ticket fue cancelado tras abrirse o si una respuesta
+  fue rechazada y reabierta.
+* No cumple el requerimiento de la clase: el modelo quedaría incompleto.
 
-### Option 2: Add a `request_status_history` table
+### Option 2: Tabla `ticket_status_history`
 
 Benefits:
 
-* Every transition (and every birth) is an auditable event: `previous_status` + `new_status`
-  + `changed_at`, per request.
-* `GET /requests/:id/history` answers *how did we get here* without changing the resource
-  representation.
-* The current status remains a denormalized "latest known state" kept in sync by the same
-  transaction that writes the event, so reads stay simple.
+* Cada transición (y cada nacimiento) es un evento auditable: `previous_status` +
+  `new_status` + `changed_at`, por ticket.
+* `GET /api/v1/support-tickets/:id/history` responde *cómo llegamos aquí* sin cambiar la
+  representación del recurso.
+* El status actual se mantiene como "último estado conocido", sincronizado por la misma
+  transacción que escribe el evento; las lecturas siguen siendo simples.
 
 Costs:
 
-* One more table and one more insert on every status change.
-* The insert must be atomic with the update: `requests` and `request_status_history` change
-  together or not at all (see `transaction-plan.md`).
-* The birth event carries `previous_status = NULL` — a deliberate, documented NULL meaning
-  "no previous state existed".
+* Una tabla más y un insert extra en cada cambio de estado.
+* El insert debe ser atómico con el update: `support_tickets` y `ticket_status_history`
+  cambian juntos o no cambian (ver `transaction-plan.md`).
+* El evento de nacimiento lleva `previous_status = NULL`, un NULL deliberado y documentado
+  que significa "no existía estado anterior" (ver `data-model.md`).
 
 ## Decision
 
-We chose **Option 2: a `request_status_history` table that records each birth and each
-transition**. `requests.status` keeps the current state for simple reads, and the history
-table keeps the sequence of events that produced it. The two writes (request update + event
-insert) are always performed inside one transaction (`withTransaction`), so the history can
-never drift away from the current status.
+Elegimos **Option 2: `ticket_status_history`**, una tabla que registra cada nacimiento y cada
+transición. `support_tickets.status` conserva el estado actual para lecturas simples, y la
+tabla de historial conserva la secuencia de eventos que lo produjeron. Las dos escrituras
+(update del ticket + insert del evento) van siempre dentro de una transacción
+(`withTransaction`), así el historial nunca puede desincronizarse del estado actual.
 
 ## Consequences
 
-What do we gain?
+Qué ganamos:
 
-* An audit trail for every change of state, in chronological order.
-* A new endpoint `GET /requests/:id/history` that is read-only and cheap.
-* The ability to explain *why* a request looks the way it looks (e.g. it was cancelled after
-  being opened; it was resolved, rejected and re-opened).
+* Auditoría de cada cambio de estado, en orden cronológico.
+* Un endpoint nuevo `GET /api/v1/support-tickets/:id/history`, solo lectura y barato.
+* La capacidad de explicar *por qué* un ticket se ve como se ve (p. ej. fue cancelado después
+  de abrirse; fue resuelto, revisado y reabierto).
 
-What complexity appears?
+Qué complejidad aparece:
 
-* Every status change writes two rows into two tables: more writes per `PATCH`.
-* The event insert participates in the transaction: if it fails, the status update rolls
-  back (used as the rollback demo in the test matrix).
-* The birth event introduces `previous_status = NULL`; any consumer of the data must know
-  that NULL means "birth" and not "unknown" (documented in `data-model.md`).
+* Cada cambio de estado escribe dos filas en dos tablas: más escrituras por `PATCH`.
+* El insert del evento participa en la transacción: si falla, el update del estado revierte
+  (usado como demostración de rollback en la matriz).
+* El nacimiento introduce `previous_status = NULL`; cualquier consumidor de datos debe saber
+  que NULL significa "nacimiento" y no "desconocido".
 
-What can no longer be done?
+Qué ya no se puede hacer:
 
-* No silent state change: every transition that happens through the API is recorded.
-* There is no corrective/deletive path for history events through the API in this class.
+* Cambio de estado silencioso: toda transición que pasa por la API queda registrada.
+* No hay ruta correctiva/eliminativa de eventos en esta clase.
 
-What may need to change later?
+Qué puede cambiar a futuro:
 
-* If statuses are ever tracked per technician or per incident, the events could carry actor
-  and comment columns (`changed_by`, `note`). The schema leaves room for that.
+* Si se rastrea el responsable o comentarios por evento, el esquema deja lugar para columnas
+  como `changed_by` y `note`.
