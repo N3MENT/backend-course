@@ -1,66 +1,55 @@
-# Transition map — ciclo de vida de una solicitud
+# Transition map — ciclo de vida de un support ticket
 
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
 > Lo que no aparece como transición permitida está prohibido: los huecos también son reglas.
 
 ## Estados
 
-* **`open`** — la solicitud fue reportada y está pendiente de atención.
-* **`in_progress`** — el personal técnico ya está trabajando en ella.
-* **`resolved`** — el equipo asume que el problema está resuelto, a la espera de que quien
-  lo reportó lo confirme.
-* **`closed`** — quien reportó (o la administración) confirmó la solución y se dio el cierre
-  formal. **Terminal.**
-* **`cancelled`** — el trabajo fue interrumpido sin resolverse (ya no se atenderá).
-  **Terminal.**
+* **`pending`** — la incidencia fue reportada y está a la espera de que un agente la tome.
+* **`in_progress`** — un agente tomó el caso y está investigando o aplicando la solución.
+* **`resolved`** — el agente aplicó la solución técnica. **Terminal.**
+* **`cancelled`** — el requerimiento fue descartado sin resolverse. **Terminal.**
 
 ## Transiciones permitidas
 
 | Desde | Hacia | ¿Qué la dispara? |
 | ----- | ----- | ---------------- |
-| `open` | `in_progress` | el técnico comienza a trabajar en la solicitud |
-| `open` | `cancelled` | se decide no atenderla |
-| `in_progress` | `resolved` | el equipo reporta una solución |
-| `in_progress` | `cancelled` | se interrumpe el trabajo en curso |
-| `resolved` | `closed` | quien la reportó confirma la solución |
-| `resolved` | `in_progress` | quien la reportó refuta la solución y se reabre |
+| `pending` | `in_progress` | el agente toma el caso para investigación |
+| `pending` | `cancelled` | el cliente cancela el requerimiento |
+| `in_progress` | `resolved` | el agente aplica la solución técnica |
+| `in_progress` | `cancelled` | el agente o el cliente descartan el requerimiento |
 
 ## Transiciones inválidas notables
 
 | Intento | Por qué se rechaza |
 | ------- | ------------------ |
-| `open → closed` | nadie cierra una solicitud sin atender |
-| `open → resolved` | no puede saltarse la etapa de trabajo |
-| `in_progress → closed` | falta la confirmación de quien la reportó |
-| `resolved → cancelled` | si ya se resolvió, el único flujo lógico es confirmarla o reabrirla |
-| `closed → *` | es un estado terminal: no admite salida |
+| `pending → resolved` | ninguna incidencia salta de "reportada" a "resuelta" sin pasar por atención |
+| `pending → cancelled` desde el agente | el cliente es quien cancela un ticket todavía no atendido |
+| `resolved → *` | es un estado terminal: no admite salida |
 | `cancelled → *` | es un estado terminal: no admite salida |
 
 ## Estados terminales
 
-`closed` y `cancelled` no admiten transiciones de salida. Si llega un `PATCH` sobre una
-solicitud en estado terminal — modifique el `status` o cualquier otro campo — la API
-responde `409` con `REQUEST_IN_TERMINAL_STATUS`.
+`resolved` y `cancelled` no admiten transiciones de salida. Si llega un `PATCH` sobre un
+ticket en estado terminal — modifique el `status` o cualquier otro campo — la API responde
+`409` con `TICKET_IN_TERMINAL_STATUS`.
 
 ## Justificación
 
-Este mapa permite el camino feliz (`open → in_progress → resolved → closed`) más dos
-salidas laterales (`→ cancelled`) y un retorno (`resolved → in_progress`). No es una secuencia
-obligatoria única: hay bifurcaciones, y lo único obligatorio es no salirse de las flechas.
+El mapa permite el camino feliz (`pending → in_progress → resolved`) más la salida lateral
+de cancelación desde `pending` o `in_progress`. Es un flujo secuencial de atención, tal como
+lo pide la regla de negocio: "avanza secuencialmente hasta su resolución o cancelación".
 
-**`resolved → in_progress` sí existe; `closed → in_progress` no.** `resolved` es una
-afirmación del equipo ("creemos que está listo") que quien reportó puede refutar si el
-problema persiste; reabrir devuelve la solicitud a trabajo. `closed`, en cambio, es un
-estado terminal de conformidad: el usuario o administrador ya auditó y dio el visto bueno
-final. Una vez alcanzado el cierre formal, no se reactiva la misma entidad; si ocurre algo
-nuevo, se abre una nueva Request.
+**`pending → cancelled` y `in_progress → cancelled` son las únicas salidas a terminal.**
+Un ticket pendiente que nunca se atenderá se cancela; un ticket en atención que se descarta
+se cancela también. No existe `resolved → cancelled`: si la solución ya fue aplicada, el
+trabajo terminó; la única historia coherente es el estado terminal `resolved`.
 
-**`resolved → cancelled` se rechaza.** La cancelación es una salida anticipada para
-interrumpir un trabajo **en curso o pendiente** (`in_progress`, `open`). Si el recurso ya
-pasó por el ciclo de trabajo y llegó a `resolved`, cancelarlo carece de sentido semántico:
-la solicitud ya fue atendida, por lo que el único flujo lógico es su confirmación
-(`closed`) o su reapertura (`in_progress`).
+**`resolved → in_progress` no existe (invariante de negocio).** Si una falla reaparece sobre
+un ticket resuelto, el negocio exige abrir un **nuevo ticket** de soporte. Esta decisión
+preserva la integridad del flujo y la calidad de las métricas: cada ticket cuenta una sola
+historia, sin reabrir ciclos que confundirían reportes de tiempo y resolución.
 
-**Cancelar ≠ cerrar.** Ambos terminan la solicitud, pero cuentan historias distintas:
-cerrar culmina el trabajo con confirmación; cancelar lo interrumpe sin resolverlo. La
-distinción permite auditar por qué una solicitud terminó sin atenderse.
+**Cancelar ≠ resolver.** Ambos terminan el ticket, pero cuentan historias distintas:
+`resolved` culmina el trabajo con una solución aplicada; `cancelled` lo interrumpe sin
+resolverlo. La distinción permite auditar por qué un ticket terminó sin atenderse.

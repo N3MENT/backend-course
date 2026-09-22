@@ -1,8 +1,12 @@
-# HTTP contract — Request API v3
+# HTTP contract — Support Tickets API v1
 
 Contrato vigente de la API. Coincide con el documento de diseño de la entrega
 (`activities/class-03/http-contract.md`). Ver también la máquina de estados en
-`src/modules/requests/request-status.js`.
+`src/modules/requests/request-status.js` (a refactorizar al diseño de esta entrega).
+
+## Base del recurso
+
+Todas las rutas viven bajo el prefijo `/api/v1/support-tickets`.
 
 ## Formato de error (común a toda la API)
 
@@ -10,7 +14,11 @@ Contrato vigente de la API. Coincide con el documento de diseño de la entrega
 {
   "error": {
     "code": "CODE_NAME",
-    "message": "Human readable message"
+    "message": "Mensaje legible para personas",
+    "details": [
+      { "field": "status", "issue": "Detalle específico del problema" }
+    ],
+    "timestamp": "2026-09-22T10:20:00Z"
   }
 }
 ```
@@ -19,22 +27,24 @@ Contrato vigente de la API. Coincide con el documento de diseño de la entrega
 
 | Código | Situación |
 | ------ | --------- |
-| `MISSING_TITLE` | `POST` o `PATCH` sin `title` válido |
+| `MISSING_TITLE` | `POST` sin `title` |
+| `MISSING_DESCRIPTION` | `POST` sin `description` |
 | `INVALID_PRIORITY` | `priority` con valor desconocido (body o query) |
 | `INVALID_STATUS` | `status` con valor desconocido (body o query) |
 | `EMPTY_PATCH` | `PATCH` sin campos modificables |
-| `REQUEST_NOT_FOUND` | `GET /requests/:id` o `PATCH /requests/:id` inexistente |
-| `INVALID_STATUS_TRANSITION` | transición no permitida por la máquina de estados |
-| `REQUEST_IN_TERMINAL_STATUS` | intento de modificar una solicitud en estado terminal |
+| `TICKET_NOT_FOUND` | `GET /api/v1/support-tickets/:id` o `PATCH .../:id` inexistente |
+| `INVALID_STATE_TRANSITION` | transición no permitida por la máquina de estados |
+| `TICKET_IN_TERMINAL_STATUS` | intento de modificar un ticket en estado terminal |
+| `INTERNAL_ERROR` | fallo no controlado (500) |
 
 ---
 
-## `GET /requests`
+## `GET /api/v1/support-tickets`
 
-* **Intención**: listar la colección completa de solicitudes, opcionalmente filtrada.
-* **Path**: `/requests`
-* **Query**: `status` (opcional, ∈ `{open, in_progress, resolved, closed, cancelled}`)
-  y `priority` (opcional, ∈ `{low, medium, high}`). Ambos son combinables.
+* **Intención**: listar la colección completa de tickets, opcionalmente filtrada.
+* **Path**: `/api/v1/support-tickets`
+* **Query**: `status` (opcional, ∈ `{pending, in_progress, resolved, cancelled}`) y
+  `priority` (opcional, ∈ `{low, medium, high, urgent}`). Combinación con lógica **AND**.
 * **Body**: ninguno.
 * **Respuesta exitosa**: `200` con un arreglo. Sin coincidencias, `200 []`.
 * **Errores**: `400` con `INVALID_STATUS` o `INVALID_PRIORITY` si el valor de un filtro no
@@ -43,89 +53,92 @@ Contrato vigente de la API. Coincide con el documento de diseño de la entrega
 **Ejemplo (filtrado combinado)**
 
 ```http
-GET /requests?status=open&priority=high
+GET /api/v1/support-tickets?status=pending&priority=high
 
 HTTP/1.1 200 OK
 [
   {
-    "id": 1,
-    "title": "Projector does not turn on",
-    "description": "The projector in room 204 shows no image during class.",
-    "status": "open",
+    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "title": "Error al exportar reporte PDF",
+    "description": "Al hacer clic en 'Exportar', la pantalla se queda congelada.",
     "priority": "high",
-    "createdAt": "2026-08-28T14:00:00.000Z",
-    "updatedAt": "2026-08-28T14:00:00.000Z"
+    "status": "pending",
+    "createdAt": "2026-09-22T10:00:00Z",
+    "updatedAt": "2026-09-22T10:00:00Z"
   }
 ]
 ```
 
 ---
 
-## `GET /requests/:id`
+## `GET /api/v1/support-tickets/:id`
 
-* **Intención**: obtener una solicitud concreta por su identificador.
-* **Path**: `/requests/:id`
+* **Intención**: obtener un ticket concreto por su identificador.
+* **Path**: `/api/v1/support-tickets/:id` (`:id` = UUID v4)
 * **Respuesta exitosa**: `200` con el recurso completo.
-* **Errores**: `404` con `REQUEST_NOT_FOUND` si no existe ese id.
+* **Errores**: `404` con `TICKET_NOT_FOUND` si no existe ese id.
 
 **Ejemplo (inexistente)**
 
 ```http
-GET /requests/999
+GET /api/v1/support-tickets/00000000-0000-0000-0000-000000000000
 
 HTTP/1.1 404 Not Found
 {
   "error": {
-    "code": "REQUEST_NOT_FOUND",
-    "message": "Request 999 was not found"
+    "code": "TICKET_NOT_FOUND",
+    "message": "No existe un ticket con id 00000000-0000-0000-0000-000000000000",
+    "timestamp": "2026-09-22T10:20:00Z"
   }
 }
 ```
 
 ---
 
-## `POST /requests`
+## `POST /api/v1/support-tickets`
 
-* **Intención**: crear una nueva solicitud de mantenimiento.
-* **Body**: acepta `title` (requerido), `description` (opcional) y `priority` (opcional,
-  → `medium`). El servidor **ignora** los campos que el cliente no controla (`id`,
-  `status`, `createdAt`, `updatedAt`, y cualquier campo desconocido).
-* **Respuesta exitosa**: `201 Created` con el recurso completo: `id` generado, `status`
-  `open`, y `createdAt`/`updatedAt` generados por el servidor.
-* **Errores**: `400` con `MISSING_TITLE` si falta el título; `400` con `INVALID_PRIORITY`
-  si llega una prioridad desconocida.
+* **Intención**: registrar una nueva incidencia de soporte.
+* **Path**: `/api/v1/support-tickets`
+* **Body**: acepta `title` (requerido) y `description` (requerido), `priority` (opcional,
+  → `medium`). El servidor **ignora** `id`, `status`, `createdAt`, `updatedAt` y cualquier
+  campo desconocido.
+* **Respuesta exitosa**: `201 Created` con el recurso completo: `id` UUID v4 generado,
+  `status` `pending`, `createdAt`/`updatedAt` del servidor.
+* **Errores**: `400` con `MISSING_TITLE` o `MISSING_DESCRIPTION`; `400` con
+  `INVALID_PRIORITY` si llega una prioridad desconocida.
 
 **Ejemplo**
 
 ```http
-POST /requests
+POST /api/v1/support-tickets
 {
-  "title": "Broken door lock",
-  "description": "The lock on room 101 does not turn properly.",
+  "title": "Error al exportar reporte PDF",
+  "description": "Al hacer clic en 'Exportar', la pantalla se queda congelada.",
   "priority": "high"
 }
 
 HTTP/1.1 201 Created
 {
-  "id": 6,
-  "title": "Broken door lock",
-  "description": "The lock on room 101 does not turn properly.",
-  "status": "open",
+  "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "title": "Error al exportar reporte PDF",
+  "description": "Al hacer clic en 'Exportar', la pantalla se queda congelada.",
   "priority": "high",
-  "createdAt": "2026-08-28T15:30:00.000Z",
-  "updatedAt": "2026-08-28T15:30:00.000Z"
+  "status": "pending",
+  "createdAt": "2026-09-22T10:00:00Z",
+  "updatedAt": "2026-09-22T10:00:00Z"
 }
 ```
 
 ---
 
-## `PATCH /requests/:id`
+## `PATCH /api/v1/support-tickets/:id`
 
-* **Intención**: actualizar parcialmente una solicitud existente. La intención puede estar
-  en el body, porque la máquina de estados protege cada transición en el servidor.
-* **Body**: campos modificables `title`, `description`, `priority`, `status`. Campos del
-  servidor (`id`, `createdAt`, `updatedAt`) se **ignoran** si se envían.
+* **Intención**: actualizar parcialmente un ticket existente.
+* **Body**: campos modificables `title`, `description`, `priority`, `status`. `id`,
+  `createdAt`, `updatedAt` se **ignoran**.
 * **Respuesta exitosa**: `200` con el recurso actualizado (`updatedAt` se renueva).
+* **Idempotencia**: repetir el mismo `PATCH` devuelve `200` con el mismo estado final, sin
+  efectos secundarios adicionales.
 * **Errores**:
 
 | Situación | Estado | Código de error |
@@ -133,45 +146,48 @@ HTTP/1.1 201 Created
 | Body sin campos modificables | `400` | `EMPTY_PATCH` |
 | `status` con valor desconocido | `400` | `INVALID_STATUS` |
 | `priority` con valor desconocido | `400` | `INVALID_PRIORITY` |
-| `title` vacío | `400` | `MISSING_TITLE` |
-| Recurso inexistente | `404` | `REQUEST_NOT_FOUND` |
-| Transición no permitida | `409` | `INVALID_STATUS_TRANSITION` |
-| Solicitud en estado terminal | `409` | `REQUEST_IN_TERMINAL_STATUS` |
+| Recurso inexistente | `404` | `TICKET_NOT_FOUND` |
+| Transición no permitida | `409` | `INVALID_STATE_TRANSITION` |
+| Ticket en estado terminal | `409` | `TICKET_IN_TERMINAL_STATUS` |
 
 **Ejemplo (éxito)**
 
 ```http
-PATCH /requests/1
+PATCH /api/v1/support-tickets/f47ac10b-58cc-4372-a567-0e02b2c3d479
 {
   "status": "in_progress",
-  "priority": "high"
+  "priority": "urgent"
 }
 
 HTTP/1.1 200 OK
 {
-  "id": 1,
-  "title": "Projector does not turn on",
-  "description": "The projector in room 204 shows no image during class.",
+  "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "title": "Error al exportar reporte PDF",
+  "description": "Al hacer clic en 'Exportar', la pantalla se queda congelada.",
+  "priority": "urgent",
   "status": "in_progress",
-  "priority": "high",
-  "createdAt": "2026-08-28T14:00:00.000Z",
-  "updatedAt": "2026-08-29T09:15:00.000Z"
+  "createdAt": "2026-09-22T10:00:00Z",
+  "updatedAt": "2026-09-22T10:30:00Z"
 }
 ```
 
 **Ejemplo (transición inválida)**
 
 ```http
-PATCH /requests/1
+PATCH /api/v1/support-tickets/f47ac10b-58cc-4372-a567-0e02b2c3d479
 {
-  "status": "closed"
+  "status": "resolved"
 }
 
 HTTP/1.1 409 Conflict
 {
   "error": {
-    "code": "INVALID_STATUS_TRANSITION",
-    "message": "Cannot move a request from open to closed"
+    "code": "INVALID_STATE_TRANSITION",
+    "message": "No se puede pasar de 'pending' a 'resolved'.",
+    "details": [
+      { "field": "status", "issue": "Un ticket debe pasar por 'in_progress' antes de resolverse." }
+    ],
+    "timestamp": "2026-09-22T10:30:00Z"
   }
 }
 ```

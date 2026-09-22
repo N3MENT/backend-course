@@ -1,4 +1,4 @@
-# Resource model — Request
+# Resource model — Support Ticket
 
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
 > No toda palabra del requerimiento se convierte en ruta o campo: parte del trabajo es
@@ -6,71 +6,77 @@
 
 ## Nombre del recurso
 
-**Request** — una solicitud o reporte de mantenimiento del plantel.
+**Support Ticket** — una solicitud o incidencia de soporte técnico reportada por un usuario.
 
-> "Una Request representa un incidente o necesidad de mantenimiento reportado por un
-> usuario del plantel que requiere evaluación y resolución por parte del personal técnico."
+> "Una Support Ticket representa una incidencia reportada por un usuario que requiere
+> atención técnica; avanza de forma secuencial por un flujo de atención hasta su resolución
+> o cancelación, y queda inmodificable al alcanzar un estado final."
 
 ## Propiedades
 
 | Propiedad | Tipo | Ejemplo |
 | --------- | ---- | ------- |
-| `id` | number | `1` |
-| `title` | string | `"Projector does not turn on"` |
-| `description` | string | `"The projector in room 204 shows no image during class."` |
-| `status` | string (enum) | `"open"` |
-| `priority` | string (enum) | `"medium"` |
-| `createdAt` | string (ISO 8601) | `"2026-08-28T14:00:00.000Z"` |
-| `updatedAt` | string (ISO 8601) | `"2026-08-28T14:00:00.000Z"` |
+| `id` | string (UUID v4) | `"f47ac10b-58cc-4372-a567-0e02b2c3d479"` |
+| `title` | string | `"Error al exportar reporte PDF"` |
+| `description` | string | `"Al hacer clic en 'Exportar', la pantalla se queda congelada."` |
+| `priority` | string (enum) | `"high"` |
+| `status` | string (enum) | `"pending"` |
+| `createdAt` | string (ISO 8601, UTC) | `"2026-09-22T10:00:00Z"` |
+| `updatedAt` | string (ISO 8601, UTC) | `"2026-09-22T10:00:00Z"` |
 
 ## Campos requeridos
 
-* **`title`**: una solicitud sin título no comunica qué falla. Su ausencia se rechaza con
-  `400`.
+* **`title`**: comunica de forma concreta qué falla; sin él no existe forma de clasificar la
+  incidencia. Su ausencia se rechaza con `400`.
+* **`description`**: aporta el detalle técnico o de contexto necesario para que el equipo
+  intervenga. Su ausencia también se rechaza con `400`.
 
 ## Campos opcionales
 
-* **`description`**: opcional. Al no generar un costo computacional ni impactar
-  negativamente el modelo por omitirla, se da flexibilidad al cliente para no enviarla si
-  el título cubre suficiente contexto.
-* **`priority`**: opcional. Si llega, debe ser uno de `{low, medium, high}`; si no llega,
-  el servidor aplica `medium` por defecto.
+* **`priority`**: el usuario sugiere la urgencia del caso. Si llega, debe ser uno de
+  `{low, medium, high, urgent}`; si no llega, el servidor aplica `medium` como valor
+  razonable por defecto.
 
 ## Campos generados por el servidor
 
-* **`id`**: un contador en memoria que solo avanza. No depende de `array.length + 1`: la
-  identidad no puede depender de cuántos elementos hay, porque esa cantidad cambia.
-* **`status`**: siempre nace en `open`. El cliente no decide el estado inicial.
-* **`createdAt`** y **`updatedAt`**: los genera el servidor. Si los generara el cliente,
-  dos clientes podrían chocar y las fechas serían tan confiables como el reloj de cada
-  cliente.
+* **`id`**: identificador único generado por el servidor mediante un **UUID v4**, pensado
+  para que la base de datos lo gestione (clase 4) y se eviten colisiones. El cliente no lo
+  elige.
+* **`createdAt`** y **`updatedAt`**: sellos temporales UTC generados por el servidor. Si los
+  generara el cliente, cada reloj sería la verdad y las fechas dejarían de ser confiables.
+* **`status`**: el estado inicial está regido por el ciclo de vida de la aplicación, no por
+  el cliente. Todo ticket nace en `pending`.
 
-El cliente **no puede fijar** ninguno de estos campos: si los envía, se ignoran.
+El cliente **no puede fijar** ninguno de estos campos: si los envía en el payload, el
+servidor los **ignora** y aplica los valores del sistema.
 
 ## Estados permitidos
 
 La lista cerrada de valores de `status` es:
 
-`open`, `in_progress`, `resolved`, `closed`, `cancelled`
+`pending`, `in_progress`, `resolved`, `cancelled`
 
 ## Reglas
 
-* Nunca existirá una solicitud **sin título**.
-* Nunca existirá una solicitud cuyo `status` esté fuera de
-  `{open, in_progress, resolved, closed, cancelled}`.
-* Nunca existirá una solicitud que cambie de estado **desde un estado terminal**
-  (`closed`, `cancelled`).
-* Nunca existirá una solicitud cuyo `id`, `createdAt` o `updatedAt` hayan sido **fijados
-  por el cliente**.
-* Toda solicitud **inicia en `open`**.
-* Nunca existirá una solicitud con `priority` fuera de `{low, medium, high}`.
-* Toda respuesta de error tendrá la forma `{ "error": { "code": "...", "message": "..." } }`.
+* Nunca existirá un ticket **sin título o sin descripción**.
+* Nunca existirá un ticket cuyo `status` esté fuera de
+  `{pending, in_progress, resolved, cancelled}`.
+* Nunca existirá un ticket que cambie de estado **desde un estado terminal**
+  (`resolved`, `cancelled`): terminado, inmodificable.
+* Nunca existirá un ticket cuyo `id`, `createdAt`, `updatedAt` o `status` inicial hayan sido
+  **fijados por el cliente**.
+* Todo ticket **inicia en `pending`**.
+* Nunca existirá un ticket con `priority` fuera de `{low, medium, high, urgent}`.
+* Toda respuesta de error tendrá la forma
+  `{ "error": { "code": "...", "message": "...", "details": [...], "timestamp": "..." } }`.
 
 ## Dudas
 
-* ¿Quiénes están autorizados a **cancelar** una solicitud (quien la reporta, el técnico,
-  administración)? El requerimiento no lo dice; hoy no hay autenticación.
-* ¿La **prioridad** la decide el cliente al reportar o el técnico al revisar?
-  Se asume que la reporta el cliente.
-* ¿Deben existir **paginación u ordenamiento** cuando la colección crezca?
-  Queda fuera de esta entrega.
+* ¿Quién puede **cancelar** un ticket (`pending → cancelled` lo dispara el cliente;
+  `in_progress → cancelled` puede dispararlo el agente o el cliente)? El requerimiento no
+  define identidades todavía; en esta entrega no hay autenticación.
+* Si una falla **reaparece** sobre un ticket `resolved`, el negocio pide abrir un ticket
+  nuevo: ¿debería la API facilitar algún vínculo "reabierto desde"? Queda fuera de esta
+  entrega.
+* ¿Deben existir **paginación u ordenamiento** cuando la colección crezca? Se deja fuera de
+  esta entrega; los filtros cubren el caso actual.
