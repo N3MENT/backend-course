@@ -63,17 +63,20 @@ npm test        # suite funcional 5/5 (node:test)
 
 Rutas: `GET /requests`, `GET /requests/:id`, `POST /requests`.
 
-### Clase 3 — API de solicitudes
+### Clase 3 — API de tickets de soporte
 
 ```bash
 cd activities/class-03/project
 npm install
-npm start
+npm start       # http://localhost:3000/api/v1/support-tickets
+npm test        # suite funcional 21/21 (node:test)
 ```
 
-Rutas: `GET /requests` (con filtros `status` y `priority`), `GET /requests/:id`,
-`POST /requests`, `PATCH /requests/:id`. Los detalles están en
-`docs/http-contract.md` y la verificación en `activities/class-03/test-matrix.md`.
+Rutas: `GET /api/v1/support-tickets` (con filtros `status` y `priority` en AND),
+`GET /api/v1/support-tickets/:id`, `POST /api/v1/support-tickets`,
+`PATCH /api/v1/support-tickets/:id`. Sin `DELETE`: la decisión documentada es estados
+terminales. Los detalles están en `project/docs/http-contract.md` y la verificación en
+`activities/class-03/test-matrix.md`.
 
 ### Clase 4 — API de solicitudes con PostgreSQL
 

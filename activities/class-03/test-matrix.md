@@ -1,85 +1,85 @@
 # Test matrix — Entrega 03
 
-> Fase 1: se declara el resultado **esperado**. Fase 5: se ejecuta cada caso con `curl`
-> contra el proyecto corriendo y se registra el resultado **observado** (línea de estado
-> literal y cuerpo). La columna observado se llena ejecutando, no copiando la esperada.
+> Fase 1: se declara el resultado **esperado**. Fase 5: se ejecuta cada caso contra el
+> proyecto corriendo y se registra el resultado **observado**. La columna observado se
+> llena ejecutando, no copiando la esperada.
 
 ## Datos semilla para los casos
 
-El store arranca con cinco solicitudes, una por cada estado, para que cada caso pueda
+El store arranca con cuatro tickets, uno por cada estado, para que cada caso pueda
 ejecutarse con un `id` estable y un estado previo claro:
 
-| id | title | status | priority |
-| -- | ----- | ------ | -------- |
-| 1 | Projector does not turn on | `open` | `medium` |
-| 2 | Broken chair in the lab | `in_progress` | `high` |
-| 3 | Wi-Fi drops in the library | `resolved` | `medium` |
-| 4 | Authorize new lab software | `closed` | `low` |
-| 5 | Replace lab light bulbs | `cancelled` | `high` |
+| id (UUID v4) | title | status | priority |
+| ------------ | ----- | ------ | -------- |
+| `b1e6d2f0-1c9a-4e5d-8a3f-2c5b7d9e1a23` (ticket 1) | Error al exportar reporte PDF | `pending` | `medium` |
+| `c2f7e3a1-2dab-4f6e-9b40-3d6c8eaf2b34` (ticket 2) | Login con doble factor falla | `in_progress` | `high` |
+| `d3a8f4b2-3ebc-4a7f-ac51-4e7d9fb0c345` (ticket 3) | Impresora no imprime en red | `resolved` | `urgent` |
+| `e4b9a5c3-4fcd-4b8a-bd62-5f8e0ac1d456` (ticket 4) | Cuenta duplicada en el sistema | `cancelled` | `low` |
 
-> Si varios casos se ejecutan en cadena sobre el mismo `id`, reiniciar el servidor (o
+> Si varios casos se ejecutan en cadena sobre el mismo ticket, reiniciar el servidor (o
 > reinsertar la semilla) para restablecer el estado previo declarado.
 
 ## Casos
 
-| Caso                   | Petición                                                              | Estado previo | Resultado esperado                  | Resultado observado |
-| ---------------------- | -------------------------------------------------------------------- | ------------- | ----------------------------------- | ------------------- |
-| Crear correctamente    | `POST /requests` `{"title":"Broken door lock","description":"...","priority":"high"}` | —             | `201 Created`                       | `HTTP/1.1 201 Created` — id 6, `status":"open"`, `priority":"high"`, fechas generadas |
-| Crear sin título       | `POST /requests` `{"description":"Missing title"}`                    | —             | `400 MISSING_TITLE`                 | `HTTP/1.1 400 Bad Request` — `{"error":{"code":"MISSING_TITLE","message":"Title is required"}}` |
-| Consultar inexistente  | `GET /requests/999`                                                   | —             | `404 REQUEST_NOT_FOUND`             | `HTTP/1.1 404 Not Found` — `REQUEST_NOT_FOUND` `"Request 999 was not found"` |
-| Filtrar sin resultados | `GET /requests?status=closed&priority=high`                           | —             | `200 []`                            | `HTTP/1.1 200 OK` — `[]` |
-| Cambiar prioridad      | `PATCH /requests/1` `{"priority":"low"}`                              | `open`        | `200`                               | `HTTP/1.1 200 OK` — `priority":"low"`, estado sigue `open` |
-| Transición válida      | `PATCH /requests/1` `{"status":"in_progress"}`                        | `open`        | `200`                               | `HTTP/1.1 200 OK` — `status":"in_progress"` |
-| Transición inválida    | `PATCH /requests/1` `{"status":"closed"}`                             | `open`        | `409 INVALID_STATUS_TRANSITION`     | `HTTP/1.1 409 Conflict` — `INVALID_STATUS_TRANSITION` `"Cannot move a request from open to closed"` |
-| Modificar cerrada      | `PATCH /requests/4` `{"priority":"high"}`                             | `closed`      | `409 REQUEST_IN_TERMINAL_STATUS`    | `HTTP/1.1 409 Conflict` — `REQUEST_IN_TERMINAL_STATUS` `"Request 4 is in a terminal status"` |
+| Caso | Petición | Estado previo | Resultado esperado | Resultado observado |
+| --------------------- | ------------------------------------------------------------ | ------------- | ------------------------------------------- | ------------------- |
+| Crear correctamente | `POST /api/v1/support-tickets` `{"title":"...","description":"...","priority":"high"}` | — | `201 Created` — id UUID v4, `status":"pending"`, `priority":"high"`, fechas generadas | `201` — `{ "id":"50b99ad3-...","priority":"high","status":"pending",... }` |
+| Crear sin título | `POST /api/v1/support-tickets` `{"description":"..."}` | — | `400 MISSING_TITLE` | `400` — code `MISSING_TITLE`, details `title` |
+| Crear sin descripción | `POST /api/v1/support-tickets` `{"title":"..."}` | — | `400 MISSING_DESCRIPTION` | `400` — code `MISSING_DESCRIPTION`, details `description` |
+| Crear ignorando campos de servidor | `POST /api/v1/support-tickets` `{"title":"...","description":"...","status":"resolved","priority":"urgent"}` | — | `201 Created` — `status:"pending"`, `priority:"urgent"` | `201` — `status:"pending"`, `priority:"urgent"` (id generado, `status` ignorado) |
+| Listar colección | `GET /api/v1/support-tickets` | — | `200` con arreglo de 4 | `200` — arreglo con los 4 tickets de la semilla |
+| Consultar inexistente | `GET /api/v1/support-tickets/00000000-0000-0000-0000-000000000000` | — | `404 TICKET_NOT_FOUND` | `404` — code `TICKET_NOT_FOUND` |
+| Filtrar sin resultados | `GET /api/v1/support-tickets?status=cancelled&priority=urgent` | — | `200 []` | `200` — `[]` |
+| Filtro combinado (AND) | `GET /api/v1/support-tickets?status=pending&priority=medium` | — | `200` con solo el ticket 1 | `200` — solo el ticket 1 (`b1e6d2f0-…`) |
+| Cambiar prioridad | `PATCH /api/v1/support-tickets/{ticket1}` `{"priority":"low"}` | `pending` | `200` — `priority:"low"`, estado sigue `pending` | `200` — `priority:"low"`, `status:"pending"`, `updatedAt` renovado |
+| Transición válida | `PATCH /api/v1/support-tickets/{ticket1}` `{"status":"in_progress"}` | `pending` | `200` — `status:"in_progress"` | `200` — `status:"in_progress"` |
+| Transición inválida | `PATCH /api/v1/support-tickets/{ticket1}` `{"status":"resolved"}` | `pending` | `409 INVALID_STATE_TRANSITION` | `409` — code `INVALID_STATE_TRANSITION` |
+| Modificar terminal | `PATCH /api/v1/support-tickets/{ticket3}` `{"priority":"high"}` | `resolved` | `409 TICKET_IN_TERMINAL_STATUS` | `409` — code `TICKET_IN_TERMINAL_STATUS` |
 
-### Casos propios (mínimo dos)
+### Casos propios
 
-| Caso                          | Petición                                                  | Estado previo | Resultado esperado          | Resultado observado |
-| ----------------------------- | --------------------------------------------------------- | ------------- | --------------------------- | ------------------- |
-| Filtro con valor desconocido  | `GET /requests?status=abierta`                            | —             | `400 INVALID_STATUS`        | `HTTP/1.1 400 Bad Request` — `INVALID_STATUS` `"\"abierta\" is not a valid status filter"` |
-| PATCH sin campos modificables | `PATCH /requests/1` `{"id": 1, "createdAt": "..."}`       | `open`        | `400 EMPTY_PATCH`           | `HTTP/1.1 400 Bad Request` — `EMPTY_PATCH` `"No modifiable fields were provided"` |
+| Caso | Petición | Estado previo | Resultado esperado | Resultado observado |
+| ------------------------------ | ------------------------------------------------------------ | ------------- | ------------------------------------------- | ------------------- |
+| Filtro con valor desconocido | `GET /api/v1/support-tickets?status=abierta` | — | `400 INVALID_STATUS` | `400` — code `INVALID_STATUS` |
+| PATCH sin campos modificables | `PATCH /api/v1/support-tickets/{ticket1}` `{"id":"...","createdAt":"..."}` | `pending` | `400 EMPTY_PATCH` | `400` — code `EMPTY_PATCH` |
+| Cancelación desde `in_progress` | `PATCH /api/v1/support-tickets/{ticket2}` `{"status":"cancelled"}` | `in_progress` | `200` — `status:"cancelled"` | `200` — `status:"cancelled"` |
+| Prioridad desconocida | `POST /api/v1/support-tickets` `{"title":"...","description":"...","priority":"bloqueante"}` | — | `400 INVALID_PRIORITY` | `400` — code `INVALID_PRIORITY` |
 
-> El caso de "enviar `status` al crear" (ignorado, `201`) queda cubierto por el caso de
-> creación correcta en la práctica: los campos que el servidor controla se descartan sin
-> errores. Verificación extra: `POST` con `{"title":"...","status":"closed"}` y sin
-> `priority` → `201` con `status:"open"` y `priority:"medium"`.
+> El caso de "enviar `status` al crear" (ignorado) queda cubierto por *Crear ignorando
+> campos de servidor*: los campos que el servidor controla se descartan sin errores.
 
 ## Evidencia
 
-Salida literal de `curl -i` contra el proyecto corriendo. Los dos casos prueban que las
-reglas están protegidas en el servidor.
+Fase 5, salida literal de `curl -i` contra el proyecto corriendo (`npm start`, puerto 3000)
+para los dos casos que prueban que las reglas están protegidas en el servidor. Los 16 casos
+de la matriz también se ejecutaron de la misma manera (servidor real, un reinicio por caso
+para restablecer la semilla). Además, `npm test` corre la misma matriz como suite `node:test`
+(21 aserciones, 21/21).
 
-**Transición inválida (`409 INVALID_STATUS_TRANSITION`)**
+```http
+PATCH /api/v1/support-tickets/b1e6d2f0-1c9a-4e5d-8a3f-2c5b7d9e1a23
+Content-Type: application/json
 
-```txt
-$ curl -i -X PATCH -H "Content-Type: application/json" -d '{"status":"closed"}' http://localhost:3000/requests/1
-
-HTTP/1.1 409 Conflict
-X-Powered-By: Express
-Content-Type: application/json; charset=utf-8
-Content-Length: 100
-ETag: W/"64-0QWjk9bHy1vygPTgG1/iQc3FErU"
-Date: Fri, 28 Aug 2026 18:35:28 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"error":{"code":"INVALID_STATUS_TRANSITION","message":"Cannot move a request from open to closed"}}
+{"status":"resolved"}
 ```
 
-**Solicitud en estado terminal (`409 REQUEST_IN_TERMINAL_STATUS`)**
-
-```txt
-$ curl -i -X PATCH -H "Content-Type: application/json" -d '{"priority":"high"}' http://localhost:3000/requests/4
-
+```http
 HTTP/1.1 409 Conflict
-X-Powered-By: Express
 Content-Type: application/json; charset=utf-8
-Content-Length: 93
-ETag: W/"5d-w+dIQ/wNURdVZRIvv28uU0IA7Yw"
-Date: Fri, 28 Aug 2026 18:35:28 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
 
-{"error":{"code":"REQUEST_IN_TERMINAL_STATUS","message":"Request 4 is in a terminal status"}}
+{"error":{"code":"INVALID_STATE_TRANSITION","message":"No se puede pasar de 'pending' a 'resolved'.","timestamp":"2026-09-22T14:42:29.174Z","details":[{"field":"status","issue":"La transición 'pending' → 'resolved' no está permitida.","code":"INVALID_STATE_TRANSITION"}]}}
+```
+
+```http
+PATCH /api/v1/support-tickets/d3a8f4b2-3ebc-4a7f-ac51-4e7d9fb0c345
+Content-Type: application/json
+
+{"priority":"high"}
+```
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json; charset=utf-8
+
+{"error":{"code":"TICKET_IN_TERMINAL_STATUS","message":"El ticket d3a8f4b2-3ebc-4a7f-ac51-4e7d9fb0c345 está en un estado terminal.","timestamp":"2026-09-22T14:42:29.211Z","details":[{"field":"status","issue":"El estado actual \"resolved\" es terminal: no admite más cambios.","code":"TICKET_IN_TERMINAL_STATUS"}]}}
 ```

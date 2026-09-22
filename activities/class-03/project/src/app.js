@@ -1,13 +1,14 @@
-// Application setup: middlewares and route mounting. It does not open any port.
 import express from 'express';
-import requestsRoutes from './modules/requests/requests.routes.js';
+import ticketsRoutes from './routes/supportTickets.routes.js';
+import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
-// Parses incoming JSON bodies into req.body.
 app.use(express.json());
 
-// Every route inside the router is served under /requests.
-app.use('/requests', requestsRoutes);
+app.use('/api/v1/support-tickets', ticketsRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;

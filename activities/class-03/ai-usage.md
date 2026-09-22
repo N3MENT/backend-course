@@ -6,79 +6,81 @@
 
 ## My design before using AI
 
-El diseño quedó completo en el commit `class-03-design` y fue previo a cualquier prompt:
+El diseño quedó completo **antes** de escribir cualquier código o prompt. Se elaboró
+respondiendo el cuestionario de la actividad: cada decisión de contrato y de reglas la tomó
+el estudiante, no la IA.
 
-* `resource-model.md` — recurso Request, campos requeridos/opcionales/generados, 7
-  invariantes.
-* `http-contract.md` — formato de error `{ error: { code, message } }`, códigos de error y
-  los 4 endpoints (`GET /requests` con filtros, `GET /requests/:id`, `POST /requests`,
-  `PATCH /requests/:id`).
-* `transition-map.md` — 5 estados (`open`, `in_progress`, `resolved`, `closed`,
-  `cancelled`), 6 transiciones y 2 terminales.
-* `test-matrix.md` — 8 casos de la clase + 2 propios.
+* `resource-model.md` — recurso **Support Ticket**, campos requeridos (`title`,
+  `description`), opcionales (`priority`, con `urgent` y default `medium`) y generados
+  (`id` UUID v4, `status`, `createdAt`, `updatedAt`).
+* `http-contract.md` — base `/api/v1/support-tickets`, 4 endpoints (`POST`, `GET`,
+  `GET /:id`, `PATCH`), sin `DELETE`, filtros `status`+`priority` en AND, formato de error
+  `{ error: { code, message, details?, timestamp } }` y códigos `400/404/409/500`.
+* `transition-map.md` — 4 estados (`pending`, `in_progress`, `resolved`, `cancelled`),
+  4 transiciones y 2 terminales (`resolved`, `cancelled`).
+* `test-matrix.md` — 12 casos de la clase + 4 propios, con columna esperada.
+* `project/docs/decisions/001-terminal-states-instead-of-delete.md` — decisión del
+  estudiante (terminales en vez de borrado físico).
 
-Estas decisiones de contrato y reglas **no las cambió la IA**: vienen del diseño.
+Estas decisiones de contrato y reglas **no las cambió la IA** en la implementación.
 
 ## What I asked the AI
 
-Después de la marca de diseño:
+Después de la marca de diseño, para la fase de implementación:
 
-* Implementar la migración de estructura `routes/ + data/` a `modules/requests/` sin
-  cambiar el comportamiento de los 3 endpoints existentes.
-* Implementar `PATCH /requests/:id` según el contrato (campos modificables, `409` para
-  transición inválida y para estado terminal).
-* Implementar filtros combinables `status` + `priority` en `GET /requests`.
-* Escribir la nota de decisión y la reflexión con base en el diseño.
+* Refactorizar el proyecto a las capas acordadas:
+  `controllers/services/repositories/routes/dtos/middlewares` + `domain/ticket-status.js`.
+* Reemplazar estados y urls anteriores (`open/closed`, `/requests`) por el contrato propio
+  (4 estados, `/api/v1/support-tickets`).
+* Implementar `PATCH` según el contrato (campos modificables, `409` para transición inválida
+  y para estado terminal), filtros AND, UUID v4 con `node:crypto`, y el formato de error con
+  `details` y `timestamp`.
+* Escribir una suite funcional `node:test` que cubra la matriz de casos.
 
 ## What the AI proposed
 
-* La estructura concreta de `request-status.js`, `requests.store.js` y `requests.routes.js`
-  con una responsabilidad por archivo.
-* El orden de validación en `PATCH`: 404 → `EMPTY_PATCH` → valores inválidos → terminal →
-  transición.
-* Revisar el template descargado de la presentación y confirmar que usaba `in_progress`
-  (guion bajo) para los estados, igual que el diseño.
+* La separación concreta de responsabilidades por archivo y el módulo de dominio
+  `ticket-status.js` (estados, prioridades, transiciones y guardián de terminales derivado
+  de la ausencia de transiciones).
+* El orden de validación en `PATCH`: 404 → `EMPTY_PATCH` → valores inválidos →
+  estado terminal → transición.
+* Derivar el estado `Inicial` y la prioridad por defecto de constantes del dominio
+  (`INITIAL_STATUS`, `DEFAULT_PRIORITY`) en lugar de repetir literales.
+* Cubrir el caso "campos que el cliente no controla" como `EMPTY_PATCH`.
 
 ## What I accepted
 
-* La estructura `modules/requests/` y la separación de responsabilidades del contrato.
-* El formato de error `{ error: { code, message } }` en todas las rutas.
-* Que `POST` ignore los campos que el servidor controla (`status`, `id`, fechas) y use
+* La estructura de capas y la separación de responsabilidades.
+* Que `POST` ignore los campos que el servidor controla (`id`, `status`, fechas) y use
   `medium` como prioridad por defecto.
 * Que el guardián de estados terminales proteja **cualquier** campo en `PATCH`, no solo
-  `status` (por eso `PATCH` de prioridad sobre una cerrada da `409`, como pide la matriz).
-* Que el contrato del proyecto (`activities/class-03/project/docs/http-contract.md`) sea el
-  mismo documento de diseño aprobado, sin modificarlo.
+  `status` (por eso modificar prioridad de un ticket `resolved` da `409`, como pide la
+  matriz).
+* El formato de error con `details` y `timestamp` en todos los códigos `400/404/409`.
 
 ## What I rejected or changed
 
-* **`PUT`**: el template extra descargado incluía `PUT /requests/:id`, pero el contrato de
-  la entrega define solo 4 endpoints y la actualización parcial viaja como `PATCH`. Se
-  excluyó.
-* **Capa `controllers/services/repositories`**: la IA no la propuso, pero si la hubiera
-  propuesto se habría rechazado: el contrato la excluye explícitamente.
-* **Librerías de validación**: fuera del contrato; la validación es mínima y manual.
-* **`DELETE`**: rechazado por diseño — la decisión 001 documenta cancelar en vez de borrar.
-* **La solución docente descargada en los recursos** (`request-api-v3-solucion`): no se
-  usó para implementar. El curso la comparte después de la fecha de entrega; queda como
-  material de revisión posterior.
+* **`DELETE`**: rechazado por diseño — la decisión `001` documenta terminales en vez de
+  borrar.
+* **`PUT`**: no forma parte del contrato; solo `PATCH` parcial.
+* **Librerías de validación externas** (Joi/Zod): fuera del contrato; la validación es
+  mínima y vive en `dtos/supportTicket.schema.js`.
+* **Reutilizar la estructura/template del repo anterior** (`modules/requests`, estados
+  `open/closed`): se descartó; el proyecto quedó con el recurso y los estados del diseño
+  propio, y la semilla con 4 tickets (uno por estado) bajo urls `/api/v1/support-tickets`.
 
 ## How I verified the result
 
-Ejecuté los 10 casos de la matriz con `curl` contra el servidor corriendo y registré la
-línea de estado literal y el cuerpo en `test-matrix.md`:
-
-* `201` crear correctamente, `400 MISSING_TITLE`, `404 REQUEST_NOT_FOUND`, `200 []`
-  (filtro sin resultados), `200` cambiar prioridad, `200` transición válida,
-  `409 INVALID_STATUS_TRANSITION` (open → closed), `409 REQUEST_IN_TERMINAL_STATUS`
-  (modificar cerrada), `400 INVALID_STATUS` (filtro desconocido), `400 EMPTY_PATCH`.
-* También verifiqué que un `POST` con `status: "closed"` y prioridad ausente devuelve
-  `201` con `status: "open"` y `priority: "medium"` (campos del servidor ignorados).
+* Suite funcional `npm test` (21 casos en `test/support-tickets.test.js`) que cubre la
+  matriz completa: pasa **21/21**.
+* Smoke test con el servidor corriendo (`npm start`): `GET /api/v1/support-tickets`
+  responde `200` con la semilla.
+* Evidencia literal de los casos protegidos (`409 INVALID_STATE_TRANSITION` y
+  `409 TICKET_IN_TERMINAL_STATUS`) registrada en `test-matrix.md`.
 
 ## What I still do not understand
 
-* Cómo registra Express internamente las rutas de un `Router()` en la aplicación
-  principal; lo uso, pero no sabría defender el mecanismo interno sin mirar la
-  documentación.
-* Por qué la reutilización de ids tras un reinicio (el contador vuelve a empezar) puede
-  confundir a clientes que todavía recuerdan una solicitud anterior.
+* Cómo registra Express internamente las rutas de un `Router()` en la aplicación principal;
+  lo uso, pero no sabría defender el mecanismo interno sin mirar la documentación.
+* El costo real de la colección en memoria cuando crezca (índices, particionado por estado)
+  y cómo se pagará con la migración a SQL de la clase 4.
