@@ -1,8 +1,10 @@
 # Estados terminales inmutables en vez de borrado físico
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Decision record · `project/docs/decisions/001-terminal-states-instead-of-delete.md`
 
-## Context
+## Contexto
 
 El ciclo de vida de un support ticket debe poder **terminar** una incidencia (porque se
 resolvió o porque fue descartada) sin vulnerar la integridad de los datos ni comprometer la
@@ -10,9 +12,9 @@ auditoría histórica. La solución obvia — borrar el registro de la colecció
 trazabilidad: una vez borrado, no hay forma de saber qué se reportó, quién lo atendió o por
 qué terminó una estadística de soporte.
 
-## Options
+## Opciones
 
-### Option 1: Borrado físico (`DELETE`)
+### Opción 1: Borrado físico (`DELETE`)
 
 Beneficios:
 
@@ -27,7 +29,7 @@ Costos:
 * Los ids empiezan a parecer "huecos": "sin resultados" e "nunca existió" se vuelven
   indistinguibles.
 
-### Option 2: Conservar el registro con estados terminales inmutables (`resolved`, `cancelled`)
+### Opción 2: Conservar el registro con estados terminales inmutables (`resolved`, `cancelled`)
 
 Beneficios:
 
@@ -49,17 +51,17 @@ Costos:
 * Los tickets terminales siguen ocupando espacio (aceptable en memoria para este curso; en
   la clase 4 el costo pasa a índices adecuados sobre `status` y `createdAt`).
 
-## Decision
+## Decisión
 
-Se eligió la **Option 2: estados terminales inmutables en vez de borrado físico**. La API no
+Elijo la **Opción 2: estados terminales inmutables en vez de borrado físico**. La API no
 expone `DELETE`; la máquina de estados define `resolved` y `cancelled` como terminales y la
 regla que los protege es innegociable. Es una decisión documentada, no una regla universal:
 hay sistemas donde borrar es correcto; aquí el valor del historial y de las referencias es
 mayor que el costo de conservar registros inactivos.
 
-## Consequences
+## Consecuencias
 
-¿Qué se gana?
+¿Qué gano?
 
 * Todo ticket es trazable desde su creación hasta su estado terminal.
 * `resolved` y `cancelled` son distintos: resolver culmina el trabajo con solución aplicada;

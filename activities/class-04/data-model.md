@@ -1,5 +1,7 @@
 # Data model — Persistencia de tickets y su historial
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
 > El estado del sistema deja de pertenecer al proceso (array en memoria) y pasa a una base
 > de datos compartida. Persistir no es reemplazar un array por una tabla: es decidir cómo
@@ -10,14 +12,14 @@
 En la clase 3 el estado vivía en `src/repositories/supportTickets.repository.js` como un
 arreglo en memoria: al reiniciar Express, todo se perdía. En esta clase el estado pasa a
 **PostgreSQL** (Supabase). La tabla `support_tickets` es la forma persistente del recurso
-Support Ticket de clase 3, y se añade una segunda tabla, `ticket_status_history`, para
+Support Ticket de clase 3, y añado una segunda tabla, `ticket_status_history`, para
 conservar la historia de cada cambio de estado.
 
 > **Cambio de identidad (documentado):** clase 3 generaba `id` UUID v4 con `node:crypto`.
 > El requerimiento de la clase 4 (starter oficial del curso) asigna la identidad **en la
 > base** con `BIGINT GENERATED ALWAYS AS IDENTITY`. La representación HTTP cambia: `id`
-> pasa de string (UUID) a número. Es la única ruptura de representación que aceptamos y la
-> decidimos por el requerimiento; el resto del contrato HTTP no cambia.
+> pasa de string (UUID) a número. Es la única ruptura de representación que acepto y la
+> decido por el requerimiento; el resto del contrato HTTP no cambia.
 
 ## Tabla `support_tickets`
 
@@ -67,7 +69,7 @@ nacimiento).
 **NULL = nacimiento.** Un ticket nace directamente en `pending`; en ese momento **no hubo un
 estado anterior** que registrar. El evento de nacimiento tiene `new_status = 'pending'` y
 `previous_status = NULL`, porque "pending fue el primer estado" y no hay nada antes. Un valor
-`NOT NULL` nos obligaría a inventar un estado previo falso que nunca existió. `NULL` es la
+`NOT NULL` me obligaría a inventar un estado previo falso que nunca existió. `NULL` es la
 representación honesta de "no hay estado previo".
 
 ### ¿Por qué `new_status` NO acepta NULL?
@@ -79,7 +81,7 @@ sin valor no tendría significado.
 ### Relaciones
 
 * `ticket_status_history.ticket_id` → `support_tickets.id` (uno a muchos: un ticket tiene
-  muchos eventos). `ON DELETE` no se define porque en este sistema **no hay DELETE** (decisión
+  muchos eventos). No defino `ON DELETE` porque en este sistema **no hay DELETE** (decisión
   001: estados terminales en vez de borrar).
 
 ## Restricciones totales e invariantes persistentes
@@ -115,6 +117,6 @@ database/
 
 * ¿El `updated_at` se debe refrescar en cada PATCH aunque no cambie el status? Sí: cualquier
   modificación renueva la fecha de actualización.
-* ¿Debe haber un límite de longitud para `description`? No se impone; es texto libre.
-* ¿Queremos que `GET /api/v1/support-tickets/:id/history` devuelva eventos ordenados? Sí,
+* ¿Debe haber un límite de longitud para `description`? No lo impongo; es texto libre.
+* ¿Quiero que `GET /api/v1/support-tickets/:id/history` devuelva eventos ordenados? Sí,
   `changed_at ASC` (cronológico) para que la historia se lea en orden.

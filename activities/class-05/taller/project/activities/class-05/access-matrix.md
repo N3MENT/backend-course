@@ -1,6 +1,12 @@
 # Matriz de acceso — Request API v5
 
-Dos roles exactos: `requester` y `agent`. Sin `admin`.
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
+Antes de escribir código fijé el modelo de acceso de la v5. Uso dos roles
+exactos, `requester` y `agent`, y no existe `admin`: cualquier privilegio extra
+habría que justificarlo con una necesidad real, y aquí no la había.
+
+## Quién puede hacer qué
 
 | Operación | Anónimo | Requester | Agent |
 | --------- | ------: | --------: | ----: |
@@ -17,19 +23,18 @@ Dos roles exactos: `requester` y `agent`. Sin `admin`.
 
 ## Campos controlados por el servidor
 
-El cliente JAMÁS puede enviar estos campos; si los manda, la API responde
-`400` con `error.code = "SERVER_CONTROLLED_FIELD"`.
+El cliente jamás puede enviar estos campos. Si los manda, la API responde `400`
+con `error.code = "SERVER_CONTROLLED_FIELD"`.
 
 - En `POST /auth/register`: `role`, `id`, `createdAt`, `updatedAt`,
-  `createdBy`, `passwordHash`. El rol siempre lo decide el servidor y es
+  `createdBy`, `passwordHash`. El rol lo decide siempre el servidor y es
   `requester`.
 - En `PATCH /requests/:id`: `createdBy`, `changedBy`, `id`, `createdAt`,
-  `updatedAt` — los actores salen del token autenticado, nunca del body.
+  `updatedAt`. Los actores salen del token autenticado, nunca del body.
 
 ## Solicitudes heredadas
 
 Las solicitudes sin propietario (`created_by IS NULL`, creadas antes de la
-migración 004) las ve SOLO `agent`. Un requester no puede reclamar la
-propiedad de una solicitud que no creó, y al no tener dueño no puede
-demostrar acceso legítimo; el agente, al poder ver todas, también cubre las
-heredadas.
+migración 004) las ve solo `agent`. Un requester no puede reclamar una solicitud
+que no creó, y al no tener dueño no puede demostrar acceso legítimo; el agente,
+que ve todas, también cubre las heredadas.

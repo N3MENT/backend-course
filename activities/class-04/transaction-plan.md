@@ -1,26 +1,28 @@
 # Transaction plan — unidad de trabajo, COMMIT/ROLLBACK y cliente
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
-> Define la o las unidades de trabajo, sus fallos posibles, y cómo se garantiza que dos
+> Defino la o las unidades de trabajo, sus fallos posibles y cómo garantizo que dos
 > escrituras dependientes se confirmen (o se reviertan) como una sola.
 
-## ¿Por qué necesitamos una transacción?
+## ¿Por qué necesito una transacción?
 
 Hay operaciones que escriben en **dos tablas a la vez** y ambas deben quedar consistentes:
 
 * **`createTicket`**: inserta en `support_tickets` (el ticket) **y** en
   `ticket_status_history` (su evento de nacimiento). Si el historial fallara después de
-  insertar el ticket, tendríamos un ticket sin su nacimiento: estado inconsistente.
+  insertar el ticket, tendría un ticket sin su nacimiento: estado inconsistente.
 * **`patchTicket` (cuando cambia `status`)**: actualiza `support_tickets.status` **y**
   inserta el evento en `ticket_status_history`. Si el historial fallara tras el UPDATE,
-  tendríamos un nuevo estado sin registro: historia perdida.
+  tendría un nuevo estado sin registro: historia perdida.
 
 La transacción hace que **ambas escrituras se confirmen juntas (COMMIT) o se reviertan
 juntas (ROLLBACK)**. Nunca queda una a medias.
 
 ## La unidad de trabajo
 
-Se usa un helper `withTransaction(work)` en `src/database/transaction.js`:
+Uso un helper `withTransaction(work)` en `src/database/transaction.js`:
 
 ```
 withTransaction(work) -> Promise<resultado>
@@ -53,22 +55,23 @@ el service le pasa el cliente de la transacción.
 | `INSERT ticket_status_history` falla | dentro del `work` | `ROLLBACK` → el ticket **no se creó** (o el UPDATE **no se aplicó**) |
 | Todo sale bien | — | `COMMIT` → persisten ambas filas |
 
-## Caso de rollback que demostraremos
+## Caso de rollback que demostraré
 
-Para probar el rollback (caso demo de la entrega), se provoca un fallo **controlado** en el
-segundo INSERT de la transacción (haciendo fallar `insertStatusHistory` con un
-`new_status` inválido) y se observa:
+Para probar el rollback (caso demo de la entrega), provoco un fallo **controlado** en el
+segundo INSERT de la transacción (haciendo fallar `insertStatusHistory` con un `new_status`
+inválido) y observo:
 
 1. La respuesta de error (p. ej. `500` / violación de CHECK).
 2. La consulta `SELECT` posterior que demuestra que **el ticket NO quedó creado**.
 
-Luego se revierte el cambio de prueba y se deja el código correcto.
+Luego revierto el cambio de prueba y dejo el código correcto.
 
 ## Release del cliente
 
-El `client.release()` está en `finally`: garantiza que el cliente regrese al pool **siempre**,
-tanto si la transacción terminó en COMMIT como en ROLLBACK como si explotó antes. Un cliente
-sin liberar agota el pool y el sistema deja de responder por falta de conexiones.
+El `client.release()` está en `finally`: garantiza que el cliente regrese al pool
+**siempre**, tanto si la transacción terminó en COMMIT como en ROLLBACK como si explotó
+antes. Un cliente sin liberar agota el pool y el sistema deja de responder por falta de
+conexiones.
 
 ## Unidades de trabajo del service
 

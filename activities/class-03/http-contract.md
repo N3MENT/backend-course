@@ -1,8 +1,10 @@
 # HTTP contract — Support Tickets API v1
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
-> Para cada endpoint: intención, path, query, body, respuesta exitosa, errores y un ejemplo.
-> El ejemplo obliga a decidir los detalles que la tabla esconde.
+> Para cada endpoint defino intención, path, query, body, respuesta exitosa, errores y un
+> ejemplo. El ejemplo me obliga a decidir los detalles que la tabla esconde.
 
 ## Base del recurso
 
@@ -108,10 +110,10 @@ HTTP/1.1 404 Not Found
 * **Path**: `/api/v1/support-tickets`
 * **Body**: acepta `title` (requerido), `description` (requerido) y `priority` (opcional,
   → `medium`). El servidor **ignora** los campos que el cliente no controla (`id`,
-  `status`, `createdAt`, `updatedAt`, y cualquier campo desconocido): la API es tolerante
-  con lo que no le corresponde decidir.
+  `status`, `createdAt`, `updatedAt` y cualquier campo desconocido): la API es tolerante con
+  lo que no le corresponde decidir.
 * **Respuesta exitosa**: `201 Created` con el recurso completo: `id` UUID v4 generado,
-  `status` `pending`, y `createdAt`/`updatedAt` generados por el servidor.
+  `status` `pending` y `createdAt`/`updatedAt` generados por el servidor.
 * **Errores**: `400` con `MISSING_TITLE` o `MISSING_DESCRIPTION` si faltan los obligatorios;
   `400` con `INVALID_PRIORITY` si llega una prioridad desconocida.
 
@@ -144,7 +146,7 @@ HTTP/1.1 201 Created
 * **Intención**: actualizar parcialmente un ticket existente. Los cambios viajan como PATCH
   y no como acciones con nombre: la intención puede estar en el body, porque la máquina de
   estados protege cada transición en el servidor.
-* **Body**: campos modificables `title`, `description`, `priority`, `status`. Campos del
+* **Body**: campos modificables `title`, `description`, `priority`, `status`. Los campos del
   servidor (`id`, `createdAt`, `updatedAt`) se **ignoran** si se envían.
 * **Respuesta exitosa**: `200` con el recurso actualizado (`updatedAt` se renueva).
 * **Idempotencia**: repetir el mismo `PATCH` (p. ej. subir `priority` a `urgent`) devuelve

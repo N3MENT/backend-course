@@ -1,13 +1,14 @@
-# FEATURE-206 — Request history endpoint
+# FEATURE-206 — Endpoint de historial de una solicitud
 
-Requested by: product team
-Status: open
+Autor (portafolio): Diego Silva — diegosilva.itsu@gmail.com
+Solicitado por: equipo de producto
+Estado: abierto
 
-## Story
+## Historia
 
-As an authenticated user,
-I want to read a request's history
-so I can understand how it changed over time.
+Como usuario autenticado,
+quiero leer el historial de una solicitud
+para entender cómo cambió con el tiempo.
 
 ## Endpoint
 
@@ -15,7 +16,7 @@ so I can understand how it changed over time.
 GET /requests/:id/history
 ```
 
-## Reference representation
+## Representación de referencia
 
 ```json
 [
@@ -36,21 +37,21 @@ GET /requests/:id/history
 ]
 ```
 
-## Rules
+## Reglas
 
-1. Requires authentication.
-2. A requester can read the history of their OWN requests.
-3. A requester cannot read someone else's history — keep the EXISTING
-   contract for foreign requests (do not silently switch it).
-4. An agent can read any history.
-5. A missing request answers `404`.
-6. A request without events answers `200` with `[]`.
-7. Events are ordered oldest first, with a stable rule when two events
-   share the same timestamp.
-8. The response never exposes passwords, hashes, tokens or secrets.
-9. Keep the existing error format and the existing responsibilities —
-   do not duplicate authorization rules that already exist.
+1. Requiere autenticación.
+2. Un requester puede leer el historial de sus propias solicitudes.
+3. Un requester no puede leer el historial ajeno: mantengo el contrato existente
+   para recursos ajenos (no lo cambio en silencio).
+4. Un agent puede leer cualquier historial.
+5. Una solicitud inexistente responde `404`.
+6. Una solicitud sin eventos responde `200` con `[]`.
+7. Los eventos se ordenan del más antiguo al más nuevo, con una regla estable
+   cuando dos eventos comparten timestamp.
+8. La respuesta nunca expone passwords, hashes, tokens ni secretos.
+9. Mantengo el formato de error y las responsabilidades existentes: no duplico
+   reglas de autorización que ya existen.
 
-## Out of scope
+## Fuera de alcance
 
-Pagination, history filters, WebSockets, advanced auditing.
+Paginación, filtros de historial, WebSockets y auditoría avanzada.

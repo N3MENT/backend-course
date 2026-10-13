@@ -1,16 +1,18 @@
 # Test matrix — Entrega 04 (12 casos mínimos)
 
-> Fase 1: se declara el resultado **esperado**. Fase 6: se ejecuta cada caso contra
-> PostgreSQL (Supabase) y se registra el resultado **observado** (línea de estado literal
-> `HTTP/1.1 ...`). La evidencia confirma persistencia tras reinicio y rollback.
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
+> Fase 1: declaro el resultado **esperado**. Fase 6: ejecuto cada caso contra PostgreSQL
+> (Supabase) y registro el resultado **observado** (línea de estado literal `HTTP/1.1 ...`).
+> La evidencia confirma persistencia tras reinicio y rollback.
 
 ## Datos semilla
 
-La base se puebla con `database/seed.sql`: cuatro tickets (uno por cada estado) con su
-evento de nacimiento y dos transiciones (`pending → in_progress`, `in_progress → resolved`)
-para que el historial tenga datos. Los ids los asigna PostgreSQL (`IDENTITY`), por lo que en
-ejecución dependen del estado de la base; la referencia son los tickets sembrados (ids `1..4`
-tras el seed) y el ticket creado en el caso 2.
+La base se puebla con `database/seed.sql`: cuatro tickets (uno por cada estado) con su evento
+de nacimiento y dos transiciones (`pending → in_progress`, `in_progress → resolved`) para que
+el historial tenga datos. Los ids los asigna PostgreSQL (`IDENTITY`), por lo que en ejecución
+dependen del estado de la base; la referencia son los tickets sembrados (ids `1..4` tras el
+seed) y el ticket creado en el caso 2.
 
 | id | title | status | priority |
 | -- | ----- | ------ | -------- |
@@ -44,7 +46,7 @@ tras el seed) y el ticket creado en el caso 2.
   legible el seed (produce los eventos del caso 6).
 * **Caso 11** (`404` en history): el endpoint nuevo distingue "sin historial" de
   "ticket inexistente".
-* **Caso 12** (`400 INVALID_STATUS` en filtro): mantiene la regla de clase 3 de contrato.
+* **Caso 12** (`400 INVALID_STATUS` en filtro): mantiene la regla de contrato de clase 3.
 
 ## Evidencia obligatoria (fase 6)
 

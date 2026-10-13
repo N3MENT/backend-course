@@ -1,11 +1,13 @@
 # Entrega 04 — De SQL al backend persistente
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 ## Objetivo
 
 Llevar la API de tickets que vivía en memoria a una base de datos real. El estado deja de
-ser un array en el proceso Node: pasa a **PostgreSQL** (Supabase), se conserva el historial
-de cada cambio de estado (estado → antecedentes) y las escrituras que tocan dos tablas se
-protegen con **transacciones**. Además se exige conectar, consultar y evidenciar el trabajo
+ser un array en el proceso Node: pasa a **PostgreSQL** (Supabase), conservo el historial de
+cada cambio de estado (estado → antecedentes) y protejo con **transacciones** las escrituras
+que tocan dos tablas. Además, la entrega exige conectar, consultar y evidenciar el trabajo
 contra la base, sin filtraciones de secretos.
 
 ## Estructura
@@ -26,13 +28,13 @@ activities/class-04/
 El proyecto de esta entrega vive en `activities/class-04/project/`. La base de referencia
 (no modificada) está en `activity resources/request-api-v4-starter/`.
 
-## Diseño (fase 1, elaborado con respuestas propias)
+## Diseño (fase 1, elaborado con mis propias respuestas)
 
 * **Recurso**: Support Ticket — mismo recurso que la clase 3, ahora persistente.
 * **Identidad**: `BIGINT GENERATED ALWAYS AS IDENTITY` — la asigna PostgreSQL (requerimiento
   del starter oficial; el contrato cambia: `id` pasa de UUID string a número). Documentado en
   `data-model.md`.
-* **Máquina de estados**: idéntica a clase 3 (`pending → in_progress → resolved` teminal;
+* **Máquina de estados**: idéntica a clase 3 (`pending → in_progress → resolved` terminal;
   `pending/in_progress → cancelled` terminal). Respaldada con `CHECK` en la base.
 * **Historial**: tabla `ticket_status_history`, una fila por nacimiento y transición,
   `previous_status NULL` = nacimiento. Nuevo endpoint `GET /api/v1/support-tickets/:id/history`
@@ -43,7 +45,7 @@ El proyecto de esta entrega vive en `activities/class-04/project/`. La base de r
 * **Errores**: mismo formato de clase 3 (`{ error: { code, message, details?, timestamp } }`)
   + categorías de persistencia: `DATABASE_UNAVAILABLE` (503), `DB_ERROR` (500),
   `INTERNAL_ERROR` (500). Nunca se filtran secretos de `pg` ni `DATABASE_URL`.
-* **Base protege la forma** (NOT NULL, CHECK, FK, IDENTITY) **y la aplicación las reglas**
+* **La base protege la forma** (NOT NULL, CHECK, FK, IDENTITY) **y la aplicación las reglas**
   (transiciones, terminales, filtros).
 * **Decisiones**: `001-terminal-states-instead-of-delete.md` y
   `002-preserve-status-history.md`.
@@ -51,7 +53,7 @@ El proyecto de esta entrega vive en `activities/class-04/project/`. La base de r
 ## Fases
 
 1. **Diseño sin IA** — modelo, contrato de persistencia, queries, transacción, errores y
-   casos se documentan **antes** de escribir código o consultar IA. Se marca con el commit y
+   casos se documentan **antes** de escribir código o consultar IA. Marco con el commit y el
    tag `class-04-design`.
 2. **Configuración de la base** — proyecto individual en Supabase, `Session pooler`,
    `DATABASE_URL` en `.env` (nunca commiteado), `npm run db:check`, migraciones 001 y 002
@@ -65,16 +67,16 @@ El proyecto de esta entrega vive en `activities/class-04/project/`. La base de r
 5. **Decisión documentada** — `002-preserve-status-history.md` (conservar el historial de
    estados).
 6. **Evidencia y reflexión** — ejecutar la matriz (12 casos: persistencia tras reinicio y
-   rollback incluidos) y responder las doce preguntas de reflexión. Se cierra con el tag
+   rollback incluidos) y responder las doce preguntas de reflexión. Cierro con el tag
    `class-04-submission`.
 
 ## Estado
 
 | Fase | Estado |
 | ---- | ------ |
-| 1 · Diseño sin IA | ✅ Documentos rediseñados al diseño propio (support_tickets) |
-| 2 · Configuración de la base | ⏳ **Bloqueada: requiere cuenta Supabase propia + `DATABASE_URL`** (Session pooler) |
-| 3 · Implementación | ⏳ Pendiente (requiere fase 2) |
-| 4 · IA con contrato | ⏳ Pendiente — se registra al implementar |
-| 5 · Decisión | ✅ `001-terminal-states-instead-of-delete.md` + `002-preserve-status-history.md` |
-| 6 · Evidencia y reflexión | ⏳ Pendiente — matriz esperada lista
+| 1 · Diseño sin IA | Completado — documentos rediseñados al diseño propio (support_tickets) |
+| 2 · Configuración de la base | Bloqueada — requiere cuenta Supabase propia + `DATABASE_URL` (Session pooler) |
+| 3 · Implementación | Pendiente (requiere fase 2) |
+| 4 · IA con contrato | Pendiente — se registra al implementar |
+| 5 · Decisión | Completado — `001-terminal-states-instead-of-delete.md` + `002-preserve-status-history.md` |
+| 6 · Evidencia y reflexión | Pendiente — matriz esperada lista |

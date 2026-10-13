@@ -1,8 +1,10 @@
 # Contrato HTTP — Request API Full
 
-## Recurso
+Definí este contrato antes de implementar la API. Es la referencia contra la cual verifiqué que cada endpoint respondiera lo esperado.
 
-Una **solicitud** (`request`) representa un reporte de mantenimiento enviado por un usuario. Contiene un título, una descripción, un estado de seguimiento y una prioridad. Las solicitudes se almacenan en memoria y se identifican de forma única por un `id` numérico.
+## El recurso
+
+Una **solicitud** (`request`) representa un reporte de mantenimiento enviado por un usuario. Tiene un título, una descripción, un estado de seguimiento y una prioridad. Las solicitudes se almacenan en memoria y se identifican de forma única por un `id` numérico.
 
 ### Forma del recurso
 
@@ -18,13 +20,13 @@ Una **solicitud** (`request`) representa un reporte de mantenimiento enviado por
 
 ## Endpoint 1 — Listar solicitudes
 
-| Elemento              | Valor |
-| --------------------- | ----- |
-| Método                | `GET` |
-| Ruta                  | `/requests` |
-| Entrada               | Ninguna |
-| Respuesta de éxito    | `200 OK` con arreglo JSON de solicitudes |
-| Respuestas de error   | Ninguna (devuelve arreglo vacío `[]` si no hay datos) |
+| Elemento            | Valor |
+| ------------------- | ----- |
+| Método              | `GET` |
+| Ruta                | `/requests` |
+| Entrada             | Ninguna |
+| Respuesta de éxito  | `200 OK` con arreglo JSON de solicitudes |
+| Respuestas de error | Ninguna (devuelve arreglo vacío `[]` si no hay datos) |
 
 **Ejemplo de respuesta**
 
@@ -44,13 +46,13 @@ Una **solicitud** (`request`) representa un reporte de mantenimiento enviado por
 
 ## Endpoint 2 — Consultar una solicitud
 
-| Elemento              | Valor |
-| --------------------- | ----- |
-| Método                | `GET` |
-| Ruta                  | `/requests/:id` |
-| Entrada               | Path parameter `:id` (number) |
-| Respuesta de éxito    | `200 OK` con el objeto de la solicitud |
-| Respuestas de error   | `404 Not Found` si el `id` no corresponde a ninguna solicitud |
+| Elemento            | Valor |
+| ------------------- | ----- |
+| Método              | `GET` |
+| Ruta                | `/requests/:id` |
+| Entrada             | Path parameter `:id` (number) |
+| Respuesta de éxito  | `200 OK` con el objeto de la solicitud |
+| Respuestas de error | `404 Not Found` si el `id` no corresponde a ninguna solicitud |
 
 **Ejemplo de respuesta (éxito)**
 
@@ -76,13 +78,13 @@ Una **solicitud** (`request`) representa un reporte de mantenimiento enviado por
 
 ## Endpoint 3 — Crear una solicitud
 
-| Elemento              | Valor |
-| --------------------- | ----- |
-| Método                | `POST` |
-| Ruta                  | `/requests` |
-| Entrada               | Body JSON con `title` (obligatorio), `description` y `priority` |
-| Respuesta de éxito    | `201 Created` con la solicitud creada |
-| Respuestas de error   | `400 Bad Request` si falta `title` o está vacío |
+| Elemento            | Valor |
+| ------------------- | ----- |
+| Método              | `POST` |
+| Ruta                | `/requests` |
+| Entrada             | Body JSON con `title` (obligatorio), `description` y `priority` |
+| Respuesta de éxito  | `201 Created` con la solicitud creada |
+| Respuestas de error | `400 Bad Request` si falta `title` o está vacío |
 
 **Ejemplo de body de la petición**
 
@@ -118,14 +120,14 @@ Una **solicitud** (`request`) representa un reporte de mantenimiento enviado por
 
 ## Reglas transversales
 
-1. ¿Qué `Content-Type` devuelven todas las respuestas? `application/json; charset=utf-8`
-2. ¿Qué estado corresponde a una ruta que no existe en esta API? `404 Not Found`
-3. ¿Qué forma tiene siempre un cuerpo de error? `{ "error": "mensaje descriptivo" }`
-4. ¿Qué campos ignora el servidor si el cliente los envía en el body? `id` y `status` (el servidor los asigna)
+1. ¿Qué `Content-Type` devuelven todas las respuestas? `application/json; charset=utf-8`.
+2. ¿Qué estado corresponde a una ruta que no existe en esta API? `404 Not Found`.
+3. ¿Qué forma tiene siempre un cuerpo de error? `{ "error": "mensaje descriptivo" }`.
+4. ¿Qué campos ignora el servidor si el cliente los envía en el body? `id` y `status` (los asigna el servidor).
 
-## Decisiones que tomaste y por qué
+## Decisiones que tomé y por qué
 
-- Se usa `201` en la creación en lugar de `200` porque se está generando un recurso nuevo, no devolviendo uno existente.
-- El filtro por estado se omitió del contrato porque el alcance de esta entrega es solo los tres endpoints básicos.
-- `description` y `priority` son opcionales porque una solicitud puede crearse con información mínima y enriquecerse después.
+- Uso `201` en la creación en lugar de `200` porque estoy generando un recurso nuevo, no devolviendo uno existente.
+- Omití el filtro por estado del contrato porque el alcance de esta entrega son solo los tres endpoints básicos.
+- Dejé `description` y `priority` como opcionales porque una solicitud puede crearse con información mínima y enriquecerse después.
 - El campo `status` siempre inicia en `"open"` porque el servidor es quien controla el ciclo de vida del recurso.

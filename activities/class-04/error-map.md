@@ -1,9 +1,11 @@
 # Error map — categorías de error sin filtrar secretos
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
-> Clasifica cada error según su categoría para traducirlo a HTTP de forma consistente y
+> Clasifico cada error según su categoría para traducirlo a HTTP de forma consistente y
 > **sin filtrar** secretos ni detalles internos (`pg` puede exponer la cadena de conexión o
-> esquema interno si se reenvía crudo).
+> el esquema interno si se reenvía crudo).
 
 ## Formato de error (se mantiene de clase 3)
 
@@ -20,12 +22,12 @@
 }
 ```
 
-> A diferencia del contrato ajeno anterior (solo `{code, message}`), conservamos el formato
-> de **nuestra** clase 3: `details` (opcional) y `timestamp` siempre presente.
+> A diferencia del contrato ajeno anterior (solo `{code, message}`), conservo el formato de
+> **mi** clase 3: `details` (opcional) y `timestamp` siempre presente.
 
 ## Categorías y su traducción HTTP
 
-El service lanza errores **típados** (`AppError` con `status`, `code`, `details`) y el
+El service lanza errores **tipados** (`AppError` con `status`, `code`, `details`) y el
 middleware los traduce. La base de datos apenas lanza errores crudos; la capa los captura y
 **nunca** los envía al cliente.
 
@@ -42,7 +44,7 @@ middleware los traduce. La base de datos apenas lanza errores crudos; la capa lo
 
 * El cliente **nunca** debe recibir el mensaje crudo de `pg` (puede contener la cadena de
   conexión, el host, el rol o el esquema interno).
-* Ante un error de persistencia/infraestructura se responde un `message` genérico y seguro
+* Ante un error de persistencia/infraestructura respondo un `message` genérico y seguro
   (p. ej. `"La base de datos no está disponible."`), y el **detalle real se registra en la
   consola del servidor** (`console.error`) para diagnóstico, no en el cuerpo de la respuesta.
 * `db:check` imprime solo el nombre de la base y la versión, nunca la URL ni la contraseña.
@@ -64,7 +66,7 @@ middleware los traduce. La base de datos apenas lanza errores crudos; la capa lo
 | `DB_ERROR` | persistence → `500` |
 | `INTERNAL_ERROR` | internal → `500` |
 
-> Se conservan los códigos de **nuestra clase 3** (`TICKET_*`, `MISSING_*`, `INVALID_*`,
-> `EMPTY_PATCH`) que el contrato ya publicó, y se añaden los de
-> infraestructura/persistencia/interno. El contrato externo de los endpoints NO cambia (solo
-> cambió la representación del `id`, documentado en `data-model.md`).
+> Conservo los códigos de **mi clase 3** (`TICKET_*`, `MISSING_*`, `INVALID_*`, `EMPTY_PATCH`)
+> que el contrato ya publicó, y añado los de infraestructura/persistencia/interno. El
+> contrato externo de los endpoints NO cambia (solo cambió la representación del `id`,
+> documentado en `data-model.md`).

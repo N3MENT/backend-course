@@ -1,9 +1,11 @@
 # Request API v4
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 API REST (Express + Node.js) que administra **solicitudes de mantenimiento** de un plantel.
-Proyecto de la materia Desarrollo Backend — Entrega 04: migración del almacenamiento en
-memoria a **PostgreSQL** (Supabase), con historial de estados, transacciones y errores sin
-filtración de secretos.
+Proyecto de Desarrollo Backend — Entrega 04: migración del almacenamiento en memoria a
+**PostgreSQL** (Supabase), con historial de estados, transacciones y errores sin filtración
+de secretos.
 
 Los datos viven en **PostgreSQL**: al reiniciar Express la información persiste, y cada
 cambio de estado queda registrado como un evento en el historial.
@@ -16,7 +18,7 @@ cambio de estado queda registrado como un evento en el historial.
 
 ## Configuración de la base
 
-Crear el archivo `.env` a partir de `.env.example` y pegar la cadena del **Session pooler**
+Creo el archivo `.env` a partir de `.env.example` y pego la cadena del **Session pooler**
 (panel de Supabase → Connect). El `.env` está en `.gitignore`: **no se sube ni se comparte**.
 
 ```bash
@@ -25,7 +27,7 @@ cp .env.example .env # (en Windows: copy .env.example .env) y editar DATABASE_UR
 npm run db:check     # verifica conexión y versión, sin imprimir secretos
 ```
 
-Luego, en el SQL Editor de Supabase, ejecutar en orden:
+Luego, en el SQL Editor de Supabase, ejecuto en orden:
 
 1. `database/migrations/001_create_requests.sql`
 2. `database/migrations/002_create_request_status_history.sql`
@@ -54,7 +56,7 @@ project/
 ├── docs/
 │   ├── http-contract.md                (contrato de la API)
 │   └── decisions/
-│       ├── 001-cancel-instead-of-delete.md
+│       ├── 001-terminal-states-instead-of-delete.md
 │       └── 002-preserve-status-history.md
 ├── scripts/
 │   └── check-database.js               (verifica conexión, nunca imprime DATABASE_URL)
@@ -67,7 +69,7 @@ project/
     │   └── db-errors.js                (clasifica errores de conexión para el 503)
     └── modules/
         └── requests/
-            ├── requests.routes.js      (HTTP entra y sale; traduce errores tipeados)
+            ├── requests.routes.js      (HTTP entra y sale; traduce errores tipados)
             ├── requests.service.js     (reglas de proceso y unidades de trabajo; AppError)
             ├── requests.store.js       (SQL parametrizado; devuelve filas crudas)
             ├── request.mapper.js       (fila snake_case → representación camelCase)

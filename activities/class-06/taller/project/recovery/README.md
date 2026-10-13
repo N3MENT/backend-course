@@ -1,7 +1,9 @@
 # Guía de recuperación — Clase 06
 
-Cuando algo falle, NO borres nada y NO cambies código para ocultar el error.
-Busca tu síntoma en estos archivos:
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
+Cuando algo falle, no borro nada y no cambio código para ocultar el error. Busco
+mi síntoma en estos archivos:
 
 1. `environment.md` — .env, variables, secretos, puerto.
 2. `database-connection.md` — contraseña, ENOTFOUND, timeout, IPv6, pooler.

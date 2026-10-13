@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Comprender HTTP como contrato entre cliente y servidor: métodos, rutas, parámetros, códigos de estado y JSON. Analizar una API existente para detectar inconsistencias, y construir una API correctamente desde una especificación propia.
+Entender HTTP como un contrato entre cliente y servidor: métodos, rutas, parámetros, códigos de estado y JSON. Para eso analicé una API existente buscando inconsistencias y construí otra API a partir de una especificación que definí primero.
 
 ## Estructura de la entrega
 
@@ -56,11 +56,11 @@ npm start
 
 El servidor arranca en `http://localhost:3000`.
 
-> **Nota:** Solo uno puede correr a la vez en el puerto 3000. Detén el anterior antes de iniciar el otro con `Ctrl + C`.
+> **Nota:** solo una puede correr a la vez en el puerto 3000. Detengo la anterior con `Ctrl + C` antes de iniciar la otra.
 
 ## Pruebas funcionales
 
-Ambas APIs tienen una suite de pruebas que verifica el comportamiento corregido y reemplaza la evidencia manual con `curl`. Usan el test runner nativo de Node.js (`node:test`); la Lite se prueba como proceso real y la Full importando `src/app.js` sin abrir puerto (por eso existe la separación `server.js` / `app.js`).
+Ambas APIs tienen una suite que verifica el comportamiento corregido y que reemplaza la evidencia manual con `curl`. Uso el runner nativo de Node.js (`node:test`): la Lite se prueba como proceso real y la Full importando `src/app.js` sin abrir puerto (por eso existe la separación `server.js` / `app.js`).
 
 ```bash
 cd "(Actividad 1) request-api-lite"
@@ -84,30 +84,25 @@ Casos verificados en cada API (5/5):
 | 4 | `POST /requests` con título | `201` con `id: 4` | Creación devolvía `200` |
 | 5 | `POST /requests` sin título | `400` y `{"error":"Title is required"}` | Aceptaba registros sin título |
 
-> **Nota:** la suite de la Lite vuelve a levantar el servidor en el puerto `3000` dentro del test; déjalo libre al ejecutar.
+> **Nota:** la suite de la Lite vuelve a levantar el servidor en el puerto `3000` dentro del test; dejo ese puerto libre al ejecutar.
 
 ## Defectos encontrados en el Lite y correcciones
 
 | # | Defecto | Evidencia | Corrección |
 |---|---------|-----------|------------|
-| 1 | Ruta de listado usa verbo | `GET /getRequests` en lugar de `GET /requests` | Renombrada a `GET /requests` |
+| 1 | La ruta de listado usa un verbo | `GET /getRequests` en lugar de `GET /requests` | Renombrada a `GET /requests` |
 | 2 | Recurso inexistente devuelve 200 | `GET /requests/999` → `200` con `{"error":"Request not found"}` | Ahora devuelve `404` |
 | 3 | Crear solicitud devuelve 200 | `POST /requests` → `200` | Ahora devuelve `201 Created` |
-| 4 | No valida título obligatorio | Acepta crear registros con `title: undefined` | Ahora devuelve `400` si falta el título |
+| 4 | No valida el título obligatorio | Acepta crear registros con `title: undefined` | Ahora devuelve `400` si falta el título |
 
-## Decisiones tomadas en el Full
+## Decisiones que tomé en el Full
 
-1. **Separación `server.js` / `app.js`**: `server.js` solo inicia el proceso y escucha; `app.js` configura la aplicación (middlewares y rutas). Permite usar la app sin levantar un servidor (útil para pruebas).
-
-2. **`routes/requests.routes.js`**: Las rutas del recurso solicitud están aisladas en su propio archivo. Si mañana se agrega otro recurso, se crea otro archivo de rutas sin tocar este.
-
-3. **`data/requests.js`**: Los datos viven separados del resto. Hoy es un arreglo en memoria; cuando aparezca una base de datos, solo cambia este archivo.
-
-4. **`201` en creación**: Se usa `201 Created` porque se genera un recurso nuevo. `200` solo comunicaría "salió bien" sin indicar que se creó algo.
-
-5. **`400` para validación**: Se valida `title` antes de crear. `400` indica que el problema está en la petición del cliente, no en el servidor.
-
-6. **Sin exclusiones implementadas**: No se agregaron PUT, PATCH, DELETE, base de datos, autenticación ni controladores/servicios/repositorios. Cada una de estas piezas se agregará cuando exista un problema que la justifique.
+1. **Separación `server.js` / `app.js`:** `server.js` solo inicia el proceso y escucha; `app.js` configura la aplicación (middlewares y rutas). Así puedo usar la app sin levantar un servidor, algo útil para las pruebas.
+2. **`routes/requests.routes.js`:** aislé las rutas del recurso solicitud en su propio archivo. Si mañana agrego otro recurso, creo otro archivo de rutas sin tocar este.
+3. **`data/requests.js`:** dejé los datos separados del resto. Hoy es un arreglo en memoria; cuando aparezca una base de datos, solo cambio este archivo.
+4. **`201` en creación:** uso `201 Created` porque se genera un recurso nuevo. Un `200` solo diría "salió bien", sin indicar que se creó algo.
+5. **`400` para validación:** valido `title` antes de crear. `400` señala que el problema está en la petición del cliente, no en el servidor.
+6. **Sin exclusiones implementadas:** no agregué PUT, PATCH, DELETE, base de datos, autenticación ni capas de controladores, servicios o repositorios. Cada pieza se agregará cuando exista un problema que la justifique.
 
 ## Evidencia de ejecución
 

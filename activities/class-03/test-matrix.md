@@ -1,8 +1,10 @@
 # Test matrix — Entrega 03
 
-> Fase 1: se declara el resultado **esperado**. Fase 5: se ejecuta cada caso contra el
-> proyecto corriendo y se registra el resultado **observado**. La columna observado se
-> llena ejecutando, no copiando la esperada.
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
+> Fase 1: declaro el resultado **esperado**. Fase 5: ejecuto cada caso contra el proyecto
+> corriendo y registro el resultado **observado**. La columna observado se llena ejecutando,
+> no copiando la esperada.
 
 ## Datos semilla para los casos
 
@@ -16,8 +18,8 @@ ejecutarse con un `id` estable y un estado previo claro:
 | `d3a8f4b2-3ebc-4a7f-ac51-4e7d9fb0c345` (ticket 3) | Impresora no imprime en red | `resolved` | `urgent` |
 | `e4b9a5c3-4fcd-4b8a-bd62-5f8e0ac1d456` (ticket 4) | Cuenta duplicada en el sistema | `cancelled` | `low` |
 
-> Si varios casos se ejecutan en cadena sobre el mismo ticket, reiniciar el servidor (o
-> reinsertar la semilla) para restablecer el estado previo declarado.
+> Si varios casos se ejecutan en cadena sobre el mismo ticket, reinicio el servidor (o
+> reinserto la semilla) para restablecer el estado previo declarado.
 
 ## Casos
 
@@ -50,7 +52,7 @@ ejecutarse con un `id` estable y un estado previo claro:
 
 ## Evidencia
 
-Fase 5, salida literal de `curl -i` contra el proyecto corriendo (`npm start`, puerto 3000)
+Fase 5, salida literal de `curl -i` contra mi proyecto corriendo (`npm start`, puerto 3000)
 para los dos casos que prueban que las reglas están protegidas en el servidor. Los 16 casos
 de la matriz también se ejecutaron de la misma manera (servidor real, un reinicio por caso
 para restablecer la semilla). Además, `npm test` corre la misma matriz como suite `node:test`

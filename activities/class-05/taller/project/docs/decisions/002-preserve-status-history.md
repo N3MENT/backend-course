@@ -1,71 +1,85 @@
-# Preserve request status history
+# Preservar el historial de estado de las solicitudes
 
-## Context
+Autor: Diego Silva — diegosilva.itsu@gmail.com
 
-Since class 03 the backlog carried the requirement "preserve the history of the request".
-With persistence in place (class 04), we had to decide whether the system remembers only the
-current status of each request or every transition it went through.
+## Contexto
 
-## Options
+Desde la Clase 03 el backlog arrastraba el requisito "preservar el historial de
+la solicitud". Con la persistencia ya en pie (Clase 04), tuve que decidir si el
+sistema recuerda solo el estado actual de cada solicitud o cada transición por
+la que pasó.
 
-### Option 1: Keep only the current status
+## Opciones
 
-Benefits:
+### Opción 1: guardar solo el estado actual
 
-* Less data: one column, no extra table.
-* Less code: no second write, no transaction needed for status changes.
-* Every query stays trivially simple.
+Ventajas:
 
-Costs:
+- Menos datos: una columna, sin tabla extra.
+- Menos código: sin segunda escritura, sin transacción para los cambios de
+  estado.
+- Cada consulta se mantiene trivialmente simple.
 
-* "When did this move to in_progress?" and "who reopened it?" become unanswerable.
-* Auditing and diagnosing a dispute ("it was already resolved last week") is impossible.
-* The information is destroyed at the moment of each change — it cannot be reconstructed later.
+Costos:
 
-### Option 2: Store every status transition
+- "¿Cuándo pasó a `in_progress`?" y "¿quién la reabrió?" quedan sin respuesta.
+- Auditar y diagnosticar un reclamo ("ya estaba resuelta la semana pasada") es
+  imposible.
+- La información se destruye en el momento de cada cambio y no se puede
+  reconstruir después.
 
-Benefits:
+### Opción 2: guardar cada transición de estado
 
-* Complete, queryable history per request, including its birth (`NULL → open`).
-* Auditing, diagnosis and future metrics (time in each status) become possible.
-* The foreign key ties every event to its request with database-level integrity.
+Ventajas:
 
-Costs:
+- Historial completo y consultable por solicitud, incluido su nacimiento
+  (`NULL → open`).
+- La auditoría, el diagnóstico y futuras métricas (tiempo en cada estado) se
+  vuelven posibles.
+- La FK ata cada evento a su solicitud con integridad a nivel de base.
 
-* A second table, a second write on every status change, and the code to keep them aligned.
-* A consistency problem appears: a status change without its history row (or vice versa)
-  makes the database lie. This forces the change to run inside a transaction.
-* Storage grows with every transition (acceptable at this scale; revisit if it ever isn't).
+Costos:
 
-## Decision
+- Una segunda tabla, una segunda escritura en cada cambio de estado y el código
+  para mantenerlas alineadas.
+- Aparece un problema de consistencia: un cambio de estado sin su fila de
+  historial (o al revés) hace que la base mienta. Eso obliga a que el cambio
+  corra dentro de una transacción.
+- El almacenamiento crece con cada transición (aceptable a esta escala;
+  revisar si deja de serlo).
 
-Option 2. `request_status_history` stores one row per transition. Creation records
-`NULL → open`; every later status change records `previous → new`. The status update and the
-history insert run inside a single transaction (same client, `BEGIN`/`COMMIT`/`ROLLBACK`) so
-both happen or neither does.
+## Decisión
 
-## Consequences
+Elijo la opción 2. `request_status_history` guarda una fila por transición. La
+creación registra `NULL → open`; cada cambio posterior registra
+`previous → new`. La actualización de estado y la inserción del historial corren
+dentro de una única transacción (mismo cliente, `BEGIN`/`COMMIT`/`ROLLBACK`)
+para que ocurran ambas o ninguna.
 
-What do we gain?
+## Consecuencias
 
-* `GET /requests/:id/history` and honest answers about the past.
-* Auditability that survives restarts and reaches every instance.
+Qué gano:
 
-What additional data and code appear?
+- `GET /requests/:id/history` y respuestas honestas sobre el pasado.
+- Auditabilidad que sobrevive a los reinicios y alcanza a cada instancia.
 
-* The 002 migration, `insertStatusHistory` in the store, and the transactional unit in the
-  service.
+Qué datos y código adicionales aparecen:
 
-What consistency problem must be handled?
+- La migración 002, `insertStatusHistory` en el store y la unidad transaccional
+  en el servicio.
 
-* Two writes forming one logical unit — handled with `withTransaction`; a failure in either
-  write rolls back both.
+Qué problema de consistencia debo manejar:
 
-What queries become possible?
+- Dos escrituras que forman una unidad lógica — resuelto con
+  `withTransaction`: si falla cualquiera de las dos, ambas se revierten.
 
-* Full timeline per request; later: time-per-status metrics, reopened-request counts.
+Qué consultas se vuelven posibles:
 
-What may need to change later?
+- La línea de tiempo completa por solicitud; más adelante, métricas de tiempo
+  por estado o conteos de solicitudes reabiertas.
 
-* If history grows large, an index on `request_status_history(request_id)` justified by the
-  history query, or an archival policy — each as its own documented decision.
+Qué podría cambiar más adelante:
+
+- Si el historial crece mucho, un índice sobre
+  `request_status_history(request_id)` justificado por la consulta de historial,
+  o una política de archivado, cada uno como su propia decisión documentada.

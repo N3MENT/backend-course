@@ -1,14 +1,15 @@
 # Evidencia de validación — Clase 05
 
-Pega aquí la salida del validador al cerrar cada estación (SIN secretos: el
-validador ya evita imprimirlos, no agregues capturas de tu `.env`).
+Autor: Diego Silva — diegosilva.itsu@gmail.com
 
-Base de datos: Supabase (PostgreSQL 17.6) — proyecto nuevo, migraciones 001→005
-aplicadas en orden vía `scripts/_apply-migrations.mjs`.
+Registro aquí la salida del validador al cerrar cada estación, sin secretos. El
+validador ya evita imprimirlos, así que no agrego capturas de mi `.env`.
 
-> Nota de conexión: el session pooler (5432) reseteaba la conexión
-> (`ECONNRESET`); se usa el transaction pooler (puerto 6543, `?pgbouncer=true`),
-> que funciona de forma estable y cumple el mismo contrato.
+- Base de datos: Supabase (PostgreSQL 17.6), proyecto nuevo, migraciones 001→005
+  aplicadas en orden vía `scripts/_apply-migrations.mjs`.
+- Nota de conexión: el session pooler (5432) reseteaba la conexión
+  (`ECONNRESET`); uso el transaction pooler (puerto 6543, `?pgbouncer=true`),
+  que funciona de forma estable y cumple el mismo contrato.
 
 ## stage setup
 

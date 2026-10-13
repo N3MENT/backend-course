@@ -1,13 +1,15 @@
 # Persistence contract — operaciones del store
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
-> Define qué puede hacer el store contra la base: entrada, consulta, salida, ausencia,
-> errores, si usa transacción, y el mapeo. Es la frontera entre SQL y el resto del sistema.
+> Defino qué puede hacer el store contra la base: entrada, consulta, salida, ausencia,
+> errores, si usa transacción y el mapeo. Es la frontera entre SQL y el resto del sistema.
 
 ## Responsabilidad
 
 `supportTickets.repository.js` es el único sitio que habla **SQL** y conoce los **nombres de
-columna**. No sabe nada de HTTP (códigos de estado), ni de reglas de negocio (transiciones).
+columna**. No sabe nada de HTTP (códigos de estado) ni de reglas de negocio (transiciones).
 Recibe objetos simples de la capa de servicio y devuelve filas (o resultados) **sin
 mapear**; el mapeo lo hace `supportTicket.mapper.js`.
 
@@ -32,12 +34,12 @@ mapear**; el mapeo lo hace `supportTicket.mapper.js`.
 
 ### `insertTicket({ title, description, priority }, db)` → `row`
 
-* **Entrada**: campos cliente-controlados + el `db` (en creación siempre es el cliente de la
-  transacción). **Nota:** no se pasa `status` ni `id`: los define la base (`status` default
-  `pending`, `id` identidad, fechas `CURRENT_TIMESTAMP`).
+* **Entrada**: campos controlados por el cliente + el `db` (en creación siempre es el cliente
+  de la transacción). **Nota:** no se pasa `status` ni `id`: los define la base (`status`
+  default `pending`, `id` identidad, fechas `CURRENT_TIMESTAMP`).
 * **Consulta**: `INSERT INTO support_tickets (title, description, priority) VALUES ($1, $2,
   $3) RETURNING id, title, description, priority, status, created_at, updated_at`.
-* **`RETURNING`**: permite obtener la fila creada (incluido `id` y fechas que puso la base)
+* **`RETURNING`**: me permite obtener la fila creada (incluido `id` y fechas que puso la base)
   sin una segunda consulta.
 * **Errores**: propaga; el rollback lo decide la unidad de trabajo.
 * **No transacción**: la transacción la decide el *service*, no el store.
@@ -47,7 +49,7 @@ mapear**; el mapeo lo hace `supportTicket.mapper.js`.
 * **Entrada**: `id` + `changes` (solo campos que el servicio validó) + `db` (cliente de
   transacción en PATCH).
 * **Consulta**: `UPDATE support_tickets SET <cols>, updated_at = CURRENT_TIMESTAMP WHERE
-  id = $n RETURNING ...` — columnas explícitas y valores parametrizados. Siempre se renueva
+  id = $n RETURNING ...` — columnas explícitas y valores parametrizados. Siempre renuevo
   `updated_at`.
 * **Ausencia**: `null` si el `WHERE` no afectó filas (id no encontrado; el servicio ya lo
   habrá validado).
@@ -87,8 +89,8 @@ en la **representación HTTP** (camelCase) que el contrato de clase 3 promete:
 | `updated_at` | `updatedAt` |
 | (`previous_status`, `new_status`, `changed_at`) | (`previousStatus`, `newStatus`, `changedAt`) |
 
-> Persistir una fila **no** la convierte automáticamente en la respuesta; esa es la tarea
-> del mapper, para no romper el contrato publicado en clase 3.
+> Persistir una fila **no** la convierte automáticamente en la respuesta; esa es la tarea del
+> mapper, para no romper el contrato publicado en clase 3.
 
 ## Fail-fast de conexión
 

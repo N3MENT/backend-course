@@ -1,8 +1,10 @@
 # HTTP contract — Support Tickets API v1
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 Contrato vigente de la API. Coincide con el documento de diseño de la entrega
 (`activities/class-03/http-contract.md`). Ver también la máquina de estados en
-`src/modules/requests/request-status.js` (a refactorizar al diseño de esta entrega).
+`src/domain/ticket-status.js`.
 
 ## Base del recurso
 

@@ -1,74 +1,86 @@
-# Cancel requests instead of deleting them
+# Cancelar solicitudes en vez de borrarlas
 
-## Context
+Autor: Diego Silva — diegosilva.itsu@gmail.com
 
-The class-03 requirements include "cancel a request" and "preserve the history of the
-request". A naive reading maps "cancel" to `DELETE /requests/:id`, physically removing the
-item from the array. We had to decide what cancelling actually means for this system.
+## Contexto
 
-## Options
+Los requisitos de la Clase 03 incluyen "cancelar una solicitud" y "preservar el
+historial de la solicitud". Una lectura ingenua mapea "cancelar" a
+`DELETE /requests/:id`, removiendo físicamente el elemento del arreglo. Tuve
+que decidir qué significa realmente cancelar en este sistema.
 
-### Option 1: Physically delete the request
+## Opciones
 
-Benefits:
+### Opción 1: borrar la solicitud físicamente
 
-* Simplest possible implementation (`array.splice`).
-* The collection only contains "live" items; no filtering needed.
-* Matches the CRUD acronym expectation.
+Ventajas:
 
-Costs:
+- Es la implementación más simple posible (`array.splice`).
+- La colección solo contiene elementos "vivos"; no hay que filtrar.
+- Encaja con la expectativa del acrónimo CRUD.
 
-* The history of the request disappears: nobody can answer "what happened with #42?".
-* Future features (comments, audit trail) would hold references to a request that no longer
-  exists.
-* Nothing can be recovered after an accidental deletion.
-* Deleting also breaks the id sequence assumptions of any client that cached the list.
+Costos:
 
-### Option 2: Preserve it with status `cancelled`
+- El historial de la solicitud desaparece: nadie puede responder "¿qué pasó con
+  la #42?".
+- Funcionalidades futuras (comentarios, auditoría) guardarían referencias a una
+  solicitud que ya no existe.
+- Nada se puede recuperar tras un borrado accidental.
+- Borrar además rompe las suposiciones sobre la secuencia de ids de cualquier
+  cliente que cacheó la lista.
 
-Benefits:
+### Opción 2: preservarla con estado `cancelled`
 
-* The request and its history survive; audit and recovery remain possible.
-* Comments and future references stay valid.
-* Cancelling becomes part of the lifecycle: the state machine controls when it is allowed
-  (from `open` or `in_progress`, never from `resolved` or `closed`).
+Ventajas:
 
-Costs:
+- La solicitud y su historial sobreviven; la auditoría y la recuperación siguen
+  siendo posibles.
+- Los comentarios y referencias futuras siguen siendo válidos.
+- Cancelar pasa a ser parte del ciclo de vida: la máquina de estados controla
+  cuándo se permite (desde `open` o `in_progress`, nunca desde `resolved` o
+  `closed`).
 
-* Cancelled requests keep occupying memory and appear in unfiltered listings; consumers must
-  filter by status when they only want active items.
-* New rules appear: what can be done with a cancelled request? (Answer: nothing — it is
-  terminal.)
-* The API has no true `DELETE`, which may surprise consumers that expect full CRUD.
+Costos:
 
-## Decision
+- Las solicitudes canceladas siguen ocupando memoria y aparecen en listados sin
+  filtrar; quien solo quiere activas debe filtrar por estado.
+- Aparecen reglas nuevas: ¿qué se puede hacer con una solicitud cancelada?
+  (Respuesta: nada, es terminal).
+- La API no tiene un `DELETE` real, lo que puede sorprender a consumidores que
+  esperan CRUD completo.
 
-Option 2. We do not implement `DELETE /requests/:id`. Cancelling is a controlled transition:
-`PATCH /requests/:id` with `{ "status": "cancelled" }`, allowed from `open` and
-`in_progress`. `cancelled` is a terminal status.
+## Decisión
 
-This is a decision for THIS domain, not a universal rule: in domains with legal deletion
-requirements (personal data), physical deletion would be mandatory.
+Elijo la opción 2. No implemento `DELETE /requests/:id`. Cancelar es una
+transición controlada: `PATCH /requests/:id` con `{ "status": "cancelled" }`,
+permitida desde `open` y `in_progress`. `cancelled` es un estado terminal.
 
-## Consequences
+Es una decisión para este dominio, no una regla universal: en dominios con
+requisitos legales de borrado (datos personales), el borrado físico sería
+obligatorio.
 
-What do we gain?
+## Consecuencias
 
-* Complete history of every request, including the interrupted ones.
-* A single modification pathway (`PATCH`) protected by the state machine.
+Qué gano:
 
-What complexity appears?
+- Historial completo de cada solicitud, incluidas las interrumpidas.
+- Una única vía de modificación (`PATCH`) protegida por la máquina de estados.
 
-* Listings that only want active requests must filter (`?status=open` etc.).
-* The terminal-status rule (`409 REQUEST_IN_TERMINAL_STATUS`) exists mostly because
-  cancelled items stay around.
+Qué complejidad aparece:
 
-What can no longer be done?
+- Los listados que solo quieren solicitudes activas deben filtrar
+  (`?status=open`, etc.).
+- La regla de estado terminal (`409 REQUEST_IN_TERMINAL_STATUS`) existe en buena
+  medida porque las canceladas se quedan.
 
-* Physically removing a request through the API.
+Qué ya no se puede hacer:
 
-What may need to change later?
+- Remover una solicitud físicamente a través de la API.
 
-* If the collection grows, we may need an "archived" view or default filters.
-* If legal deletion requirements appear, we will need a real deletion path with its own
-  rules, documented as a new decision that supersedes this one.
+Qué podría cambiar más adelante:
+
+- Si la colección crece, quizá necesite una vista "archivada" o filtros por
+  defecto.
+- Si aparecen requisitos legales de borrado, necesitaré una vía de eliminación
+  real con sus propias reglas, documentada como una decisión nueva que reemplace
+  esta.

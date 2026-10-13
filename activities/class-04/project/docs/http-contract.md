@@ -1,9 +1,11 @@
 # HTTP contract — Support Tickets API v4
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 Contrato vigente de la API. Hereda el contrato de clase 3 (los endpoints existentes no
-cambian en intención) y añade la consulta de historial (`GET /api/v1/support-tickets/:id/history`).
-Ver también la máquina de estados en `src/domain/ticket-status.js` y el mapa de errores en
-`activities/class-04/error-map.md`.
+cambian en intención) y añade la consulta de historial
+(`GET /api/v1/support-tickets/:id/history`). Ver también la máquina de estados en
+`src/domain/ticket-status.js` y el mapa de errores en `activities/class-04/error-map.md`.
 
 ## Cambio documentado respecto a clase 3
 
@@ -148,7 +150,7 @@ HTTP/1.1 200 OK
 * **Intención**: crear un nuevo ticket de soporte.
 * **Body**: acepta `title` (requerido), `description` (requerida) y `priority` (opcional,
   → `medium`). El servidor **ignora** los campos que el cliente no controla (`id`, `status`,
-  `createdAt`, `updatedAt`, y cualquier campo desconocido).
+  `createdAt`, `updatedAt` y cualquier campo desconocido).
 * **Respuesta exitosa**: `201 Created` con el recurso completo: `id` generado por
   PostgreSQL (`IDENTITY`), `status` `pending`, y `createdAt`/`updatedAt` generados por la
   base (`CURRENT_TIMESTAMP`). El evento de nacimiento queda registrado en el historial
@@ -186,7 +188,7 @@ HTTP/1.1 201 Created
 * **Intención**: actualizar parcialmente un ticket existente. Si el cambio incluye `status`,
   la transición se valida contra la máquina de estados y su evento se registra en el
   historial como parte de la misma transacción.
-* **Body**: campos modificables `title`, `description`, `priority`, `status`. Campos del
+* **Body**: campos modificables `title`, `description`, `priority`, `status`. Los campos del
   servidor (`id`, `createdAt`, `updatedAt`) se **ignoran** si se envían.
 * **Respuesta exitosa**: `200` con el recurso actualizado (`updatedAt` se renueva).
 * **Errores**:

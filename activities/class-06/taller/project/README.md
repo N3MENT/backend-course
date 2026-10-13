@@ -1,14 +1,15 @@
-# Request API — Clase 06 · Tu primer ticket en un backend existente
+# Request API — Clase 06 · Mi primer ticket en un backend existente
 
-> Es tu primera semana como desarrollador backend junior. Te asignaron este
-> repositorio: administra solicitudes, usuarios, autenticación, permisos e
-> historial. Recibiste el código, migraciones, un seeder, algunas pruebas y
-> dos tickets. NO recibiste una base de datos configurada: esa parte es tuya.
->
-> Puedes usar IA durante todo el proceso. Al terminar, demostrarás que el
-> sistema cumple su contrato y explicarás qué cambiaste.
+Autor: Diego Silva — diegosilva.itsu@gmail.com
 
-## Tu tablero
+Este es el taller de la Clase 06: mi primera semana como desarrollador backend
+junior sobre un backend que no escribí. El repositorio administra solicitudes,
+usuarios, autenticación, permisos e historial, y recibí el código, las
+migraciones, un seeder, algunas pruebas y dos tickets. No venía una base de
+datos configurada: esa parte fue mía. Pude usar IA durante todo el proceso y, al
+terminar, demostré que el sistema cumple su contrato y expliqué qué cambié.
+
+## Mi tablero
 
 ```text
 [ ] Entorno      .env configurado, doctor conectando
@@ -42,7 +43,7 @@ npm run dev
 
 | Comando | Qué hace |
 | ------- | -------- |
-| `npm run class-06:doctor` | Diagnostica tu entorno sin tocar nada |
+| `npm run class-06:doctor` | Diagnostica el entorno sin tocar nada |
 | `npm run db:migrate` | Aplica las migraciones pendientes (repetible) |
 | `npm run db:seed` | Crea los datos del taller (repetible, no duplica) |
 | `npm run generate:secret` | Genera un JWT_SECRET seguro |
@@ -59,26 +60,26 @@ npm run dev
 | `luis.requester.seed@example.test` | `luis clave del taller 06` | requester |
 | `maria.agent.seed@example.test` | `maria clave del taller 06` | agent |
 
-Son datos de demostración del taller — tu `DATABASE_URL` y tu `JWT_SECRET`,
-en cambio, son secretos reales: nunca en Git, nunca en un chat de IA.
+Son datos de demostración del taller; mi `DATABASE_URL` y mi `JWT_SECRET`, en
+cambio, son secretos reales y nunca van a Git ni a un chat de IA.
 
-## Tus tickets
+## Mis tickets
 
 1. `tickets/BUG-106.md` — una regresión reportada por soporte.
 2. `tickets/FEATURE-206.md` — el endpoint de historial que pide producto.
 
-Orden sugerido: entorno completo → suite en verde → BUG-106 → FEATURE-206.
+Orden que seguí: entorno completo → suite en verde → BUG-106 → FEATURE-206.
 
 ## Si algo falla
 
-`recovery/README.md` indexa la guía de recuperación por síntoma. Regla de
-oro: no borres datos, no cambies código para ocultar un error, y ejecuta el
-doctor antes de culpar a tu código.
+`recovery/README.md` indexa la guía de recuperación por síntoma. Mi regla de
+oro: no borrar datos, no cambiar código para ocultar un error y ejecutar el
+doctor antes de culpar a mi propio código.
 
 ## Reglas de IA
 
-Puedes usar IA para entender archivos, seguir la petición, planificar,
-implementar por pasos y generar pruebas. Tú conservas: los códigos HTTP, los
+Puedo usar IA para entender archivos, seguir la petición, planificar,
+implementar por pasos y generar pruebas. Yo conservo los códigos HTTP, los
 permisos, el ownership, el orden del historial, el formato de errores y la
-verificación del resultado. Nunca compartas `DATABASE_URL` ni `JWT_SECRET`
-— reemplázalos por `[configured]` al pegar un error.
+verificación del resultado. Nunca comparto `DATABASE_URL` ni `JWT_SECRET`;
+los reemplazo por `[configured]` al pegar un error.

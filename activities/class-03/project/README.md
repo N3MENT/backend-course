@@ -1,9 +1,11 @@
 # Support Tickets API v3
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 API REST (Express + Node.js) que administra **tickets de soporte técnico** de una
-organización. Proyecto transversal de la materia Desarrollo Backend — Entrega 03: modelo de
-recurso, contrato HTTP, máquina de estados (`pending` / `in_progress` / `resolved` /
-`cancelled`), `PATCH`, filtros y errores unificados con `details` y `timestamp`.
+organización. Proyecto transversal de Desarrollo Backend — Entrega 03: modelo de recurso,
+contrato HTTP, máquina de estados (`pending` / `in_progress` / `resolved` / `cancelled`),
+`PATCH`, filtros y errores unificados con `details` y `timestamp`.
 
 Los datos viven **en memoria**: al reiniciar el servidor se pierden. Es comportamiento
 esperado y documentado; la persistencia es el problema de la clase 4.
@@ -83,7 +85,7 @@ project/
 ## Exclusiones
 
 Sin base de datos ni persistencia en archivo, sin `DELETE` (se cancela), sin librerías de
-validación externas, sin autenticación, sin frontend. La capa `repositories` es sólo
+validación externas, sin autenticación, sin frontend. La capa `repositories` es solo
 in-memory en esta entrega; su contrato está pensado para migrar a SQL en la clase 4.
 
 ## Verificación

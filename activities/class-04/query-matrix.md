@@ -1,5 +1,7 @@
 # Query matrix — cada operación con su SQL y parámetros
 
+Autor: Diego Silva — diegosilva.itsu@gmail.com
+
 > Fase 1 · se completa **antes de usar IA y antes de tocar código**.
 > Para cada operación del store: el SQL **parametrizado** (nunca concatenado) y qué
 > parámetros lleva. Columnas explícitas siempre; nunca `SELECT *`.
@@ -53,7 +55,7 @@ RETURNING id, title, description, priority, status, created_at, updated_at;
 * `$2` = description (obligatoria en este diseño)
 * `$3` = priority (default aplicado en el service: `medium`)
 
-No se inserta `id`, `status`, `created_at` ni `updated_at`: los genera la base
+No inserto `id`, `status`, `created_at` ni `updated_at`: los genera la base
 (`IDENTITY`, `DEFAULT 'pending'`, `CURRENT_TIMESTAMP`). `RETURNING` entrega la fila completa.
 
 ## 4. `updateTicket`
