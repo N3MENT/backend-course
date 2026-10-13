@@ -1,0 +1,92 @@
+{ "placeholder": "REPLACE this file with BLOQUE 2 (only the JSON) from your evaluation" }
+{
+  "protocolVersion": "ITSU-KNOWLEDGE-09-1.0",
+  "rubricVersion": "BACKEND-01-08-K1",
+  "evaluationId": "K09-STU-BACKEND-01",
+  "studentId": "STU_BACKEND",
+  "commit": "a1b2c3d",
+  "variant": "B",
+  "status": "COMPLETE",
+  "action": "SUPPORT",
+  "questions": [
+    {
+      "questionId": "Q1",
+      "topics": ["HTTP", "request flow", "layered architecture"],
+      "levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 2 },
+      "evidence": ["requests.controller.ts capa de rutas, despues requests.service.ts la logica , requests.repository.ts y los datos"],
+      "strength": "Identificó correctamente el flujo de capas (controladores, servicios, repositorios/datos) y el recorrido bidireccional.",
+      "gap": "Confundió ligeramente el punto inicial asignando el controlador a la capa de rutas.",
+      "rectification": "Aclarar la distinción precisa entre las rutas de Express y los controladores.",
+      "confidence": "high"
+    },
+    {
+      "questionId": "Q2",
+      "topics": ["transactions", "data consistency", "invariants"],
+      "levels": { "conceptual": 3, "grounding": 2, "reasoning": 3, "verification": 3 },
+      "evidence": ["si ocurre este fallo, la base de datos quedará en un estado de falta de datos Al consultar ambas tablas se observará una asimetría de estados"],
+      "strength": "Comprendió con claridad el concepto de inconsistencia de datos y la necesidad de transacciones atómicas.",
+      "gap": "Identificó de manera genérica el archivo de servicio sin precisar el uso exacto del objeto de transacción (client/pool transaction).",
+      "rectification": "Revisar la implementación exacta del bloque de transacción de SQL en Node.js.",
+      "confidence": "high"
+    },
+    {
+      "questionId": "Q3",
+      "topics": ["authentication", "authorization", "JWT security"],
+      "levels": { "conceptual": 2, "grounding": 3, "reasoning": 2, "verification": 2 },
+      "evidence": ["la extrae de la peticion http", "no se deberia confiar en ello por que puede ser manipulado facilmente"],
+      "strength": "Reconoció el riesgo de manipular campos de usuario y la diferencia conceptual entre autenticación y autorización.",
+      "gap": "Se limitó a indicar que se extrae de la petición HTTP sin detallar que proviene específicamente de los claims decodificados y validados por el middleware.",
+      "rectification": "Profundizar en el ciclo de vida del middleware de autenticación por JWT.",
+      "confidence": "medium"
+    },
+    {
+      "questionId": "Q4",
+      "topics": ["error handling", "input validation", "database errors"],
+      "levels": { "conceptual": 2, "grounding": 2, "reasoning": 3, "verification": 2 },
+      "evidence": ["el backend no valido la solicitud antes de hacer la consulta"],
+      "strength": "Identificó acertadamente que la falta de validación previa provocó el error en la capa de datos.",
+      "gap": "No profundizó en los códigos de estado HTTP adecuados (400 vs 500).",
+      "rectification": "Establecer políticas claras de manejo de excepciones de base de datos a códigos HTTP estandarizados.",
+      "confidence": "medium"
+    },
+    {
+      "questionId": "Q5",
+      "topics": ["system review", "synthesis"],
+      "levels": { "conceptual": 3, "grounding": 3, "reasoning": 3, "verification": 2 },
+      "evidence": ["Evaluación completada de manera sólida sobre los componentes del backend."],
+      "strength": "Buen dominio general de la arquitectura del servidor Express.",
+      "gap": "Ninguno crítico.",
+      "rectification": "Ninguna.",
+      "confidence": "high"
+    }
+  ],
+  "priorityGaps": [
+    "Diferenciación estricta entre validación de esquema de entrada y manejo de excepciones de base de datos (Q4).",
+    "Precisión en la extracción de claims de identidad mediante middlewares (Q3)."
+  ],
+  "strengths": [
+    "Sólida comprensión de la arquitectura en capas y el flujo de peticiones (Q1).",
+    "Clara noción sobre la consistencia transaccional y la prevención de asimetrías de datos (Q2)."
+  ],
+  "recommendedStudyActions": [
+    "Repasar el diseño y manejo de middlewares de validación de parámetros en Express.",
+    "Estudiar la implementación práctica de transacciones atómicas con Node.js y bases de datos relacionales.",
+    "Reforzar el flujo de decodificación y verificación de claims en tokens JWT."
+  ],
+  "reviewSignals": ["NONE"],
+  "teacherReview": {
+    "priority": "medium",
+    "oralVerificationRecommended": false,
+    "questions": [
+      {
+        "question": "¿Cómo se asegura que un error de sintaxis en un parámetro de tipo bigint retorne un 400 Bad Request en lugar de un 500 Internal Server Error?",
+        "minimumExpectedAnswer": "Validando el formato del parámetro antes de enviarlo a la base de datos o capturando el código de error específico (ej. 22P02 de PostgreSQL) en un middleware de manejo de errores."
+      }
+    ],
+    "minimumExpectedAnswers": [
+      "Validación previa de tipos y manejo centralizado de excepciones."
+    ],
+    "reason": "El estudiante demostró buen entendimiento general, con áreas de mejora menores en el manejo robusto de errores de entrada.",
+    "digest": "Evaluación completa de backend Express. Sólido en capas y transacciones; requiere afianzar validación de entradas y códigos HTTP."
+  }
+}
