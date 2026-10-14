@@ -110,7 +110,7 @@ Supabase) se ejecutó lo que no depende de la base:
 | 7 | Reproducción previa (script temporal con limpieza) | Confirmar el leak antes de tocar código | stranger→**200** (9 claves), `?userId=<owner>`→200, inexistente→404, sin token→401, owner→200 | Sin bloqueo; evidencia en §8, commit `class-09-analysis` (`77cfc16`) |
 | 8 | Activar los 5 stubs de regresión + fix en `getRequest` | Cambio mínimo: policy en el único punto que la omitía | `requests.service.js` `getRequest` ahora mapea la fila y llama `canViewRequest(actor, request)` → `notFound(id)` si falla; comentario `TEMP(REQ-442)` eliminado; 2 tests en `request-detail.test.js` y 3 en `request-access-policy.test.js` pasan de `todo` a ejercitados | Sin bloqueo — `npm run test:policy` en verde tras el cambio |
 | 9 | `node --test --test-concurrency=1 test/*.test.js` (suite completa) | 64 pass · 0 fail · 0 todo, sin romper vecinos | **64 tests · 64 pass · 0 fail · 0 todo** (antes: 59 pass · 5 todo) | Glob entre comillas de `npm test` no expande en cmd.exe → corrido sin comillas (misma diferencia de shell del paso 5). Commit `class-09-fix` (`c043977`) pusheado |
-| 10 | `npm run validate:class-09` | 14/14 PASS | **13/14 PASS.** Los checks de autorización en vivo (07–11) PASAN contra la app real (401/200/404/200, sin bypass por `userId`); check 13 (suite) FALLA solo por el harness: `execSync(..., { shell: '/bin/bash' })` (`validate-class-09.js:301–302`) → `ENOENT` en win32, antes de correr cualquier test | No se modificó el validador. Evidencia equivalente de la suite (64/64) registrada en `activities/class-09/validation-evidence.txt`; WSL no está instalado en la máquina |
+| 10 | `npm run validate:class-09` | 14/14 PASS | Primera corrida: **13/14** — el check 13 invoca la suite con `shell: '/bin/bash'` (`validate-class-09.js:301–302`), inexistente en Windows → `ENOENT` antes de correr ningún test. Habilitado el bash de Git for Windows en `C:\bin\bash.exe` (+ `msys-2.0.dll`, sin tocar el validador): segunda corrida **13→14 PASS · FINAL RESULT: PASSED** | La suite completa bajo ese shell: **64 pass · 0 fail · 0 todo**. Salida real en `activities/class-09/validation-evidence.txt` |
 
 ## What I changed
 
@@ -123,9 +123,8 @@ Supabase) se ejecutó lo que no depende de la base:
 * `test/request-detail.test.js` y `test/request-access-policy.test.js` —
   5 stubs `todo` convertidos en pruebas activas.
 * `activities/class-09/work-log.md` — este registro.
-* `activities/class-09/validation-evidence.txt` — salida completa del
-  validador (13/14) con el diagnóstico del check 13 y la corrida
-  equivalente de la suite.
+* `activities/class-09/validation-evidence.txt` — salida real y completa
+  del validador terminando en `FINAL RESULT: PASSED` (14/14).
 
 ## How I verified it
 
@@ -138,13 +137,11 @@ Supabase) se ejecutó lo que no depende de la base:
   temporal con limpieza): stranger→**200** con las 9 claves del contrato;
   `?userId=<owner>`→200; inexistente→404; sin token→401; owner→200.
   Evidencia citada en el dossier §8.
-* `npm run validate:class-09` → **13/14 PASS** con el fix aplicado: checks
-  07–11 (autorización en vivo: 401/200/404/200 y sin bypass por
-  `userId`) y 14 (sin secretos) en verde. Único FAIL: check 13, porque
-  el validador invoca la suite con `shell: '/bin/bash'` inexistente en
-  Windows (`ENOENT` antes de correr tests); la misma suite corrida sin
-  ese shell queda **64 pass · 0 fail · 0 todo**. Salida y diagnóstico
-  completos en `activities/class-09/validation-evidence.txt`.
+* `npm run validate:class-09` → **14/14 PASS · FINAL RESULT: PASSED**
+  (checks 07–11: autorización en vivo 401/200/404/200 sin bypass por
+  `userId`; check 13: suite completa 64 pass · 0 fail bajo el bash
+  habilitado en `C:\bin\bash.exe`; check 14: sin secretos). Salida real
+  en `activities/class-09/validation-evidence.txt`.
 
 ## What I still cannot explain
 
