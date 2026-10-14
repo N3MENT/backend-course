@@ -87,9 +87,12 @@ export async function getRequest(actor, id) {
   const row = await findById(id);
   if (!row) throw notFound(id);
 
-  // TEMP(REQ-442): visibility check disabled while support compares
-  // duplicate reports across requesters. Re-enable after the audit.
-  return mapRequestRow(row);
+  // BUG-901: the detail is subject to the same visibility rule as the
+  // history. A foreign request answers exactly like a missing one.
+  const request = mapRequestRow(row);
+  if (!canViewRequest(actor, request)) throw notFound(id);
+
+  return request;
 }
 
 export async function createRequest(actor, input) {
