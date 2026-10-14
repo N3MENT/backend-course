@@ -107,20 +107,23 @@ Supabase) se ejecutó lo que no depende de la base:
 
 * `activities/class-09/system-dossier.md` — completado §1–§9 con evidencia
   (tabla de inventario, recorrido de 10 pasos, auditoría de 15 áreas,
-  impacto de BUG-901 antes de tocar código, 7 dudas en §9).
+  impacto de BUG-901 antes de tocar código, 7 dudas en §9). §8 incluye
+  la evidencia de reproducción de BUG-901 ejecutada ANTES del fix.
 * `activities/class-09/work-log.md` — este registro.
-* Nada de código fuente todavía: el fix de BUG-901 aún no empezó.
+* Código fuente: sin cambios hasta el commit `class-09-analysis`.
 
 ## How I verified it
 
 * `npm run test:policy` → 5 pass · 3 todo · 0 fail (sin `.env`).
-* `npm run doctor` → FAIL esperado en check 01 (evidencia del bloqueo).
-* Lectura directa de cada archivo citado en el dossier (comparación
-  `getRequest` vs `getHistory`/`patchRequest`, policy, authenticate,
-  error handler, health, parse-id, migraciones, seed).
-* `npm run validate:class-09` y la suite completa: **pendientes** hasta
-  tener `DATABASE_URL` (el validador se detiene en los checks de
-  entorno sin base).
+* `npm run doctor` → FAIL esperado en check 01 (evidencia del bloqueo);
+  tras resolver el entorno: **7/7 PASS**.
+* Migraciones 001–005 aplicadas, seed completo, suite **59 pass · 0 fail
+  · 5 todo**, commit `class-09-baseline` (`c9901fa`) pusheado.
+* **BUG-901 reproducido contra app+base reales ANTES del fix** (script
+  temporal con limpieza): stranger→**200** con las 9 claves del contrato;
+  `?userId=<owner>`→200; inexistente→404; sin token→401; owner→200.
+  Evidencia citada en el dossier §8.
+* `npm run validate:class-09`: pendiente hasta el bloque de fix.
 
 ## What I still cannot explain
 

@@ -217,6 +217,30 @@ NOT_FOUND · NOT_UNDERSTOOD. Cada fila cita evidencia o reconoce duda.
 Completa ANTES de modificar código. Commit: `class-09-analysis`.
 Análisis del cambio que BUG-901 exige (proteger el detalle por ownership).
 
+### Reproduction evidence (before the fix)
+
+Ejecutado contra la app real y la base real, ANTES de tocar código
+(script temporal que registra 2 usuarios sintéticos, crea una solicitud
+como owner, consulta como stranger y limpia todo al terminar):
+
+```
+BUG-901 · REPRODUCCION (ANTES del fix)
+request id=32 creada por owner=99c342c4-…
+[1] GET /requests/32 sin token            -> 401 (esperado 401)
+[2] GET /requests/999999999 (inexistente) como stranger -> 404 (esperado 404)
+[3] GET ...?userId=<owner> con token de stranger        -> 200   ← BUG
+[4] GET /requests/32 como owner          -> 200 (esperado 200)
+[5] GET /requests/32 como stranger        -> 200   ← BUG
+    claves expuestas: assignedTo,createdAt,createdBy,description,id,
+    priority,status,title,updatedAt
+```
+
+Lectura: el endpoint devuelve 200 con el JSON completo a un requester
+ajeno (caso 5) y el parámetro `?userId=` no cambia nada porque la
+identidad ya ignora el query (caso 3, mismo 200). El caso 2 muestra la
+respuesta correcta que el caso 5 debe replicar: 404
+`REQUEST_NOT_FOUND`, indistinguible de "no existe".
+
 ### Observable behavior
 
 Cambia UN caso observable: `GET /requests/:id` con token de un `requester`
