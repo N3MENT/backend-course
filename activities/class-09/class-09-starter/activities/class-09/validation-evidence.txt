@@ -1,1 +1,105 @@
-[PEGAR AQUÍ la salida real y completa de npm run validate:class-09 terminando en FINAL RESULT: PASSED]
+CLASS 09 VALIDATION EVIDENCE
+============================
+
+Run date:   2026-10-14
+Machine:    Windows (win32), Node.js v24.20.0
+Command:    npm run validate:class-09
+Directory:  activities/class-09/class-09-starter
+
+RESULT: 13/14 PASS. Check 13 could not execute on Windows because the validator
+hardcodes a POSIX shell (details below). The regression suite itself is fully
+green: 64 tests, 64 pass, 0 fail (equivalent run included at the bottom).
+The validator source was NOT modified.
+
+--- Full validator output -----------------------------------------------------
+
+> class-09-request-api@8.0.0 validate:class-09
+> node scripts/validate-class-09.js
+
+CLASS 09 SYSTEM VALIDATION
+
+Environment
+[01/14] Required environment variables ........... PASS
+[02/14] Database connection ...................... PASS
+
+System dossier
+[03/14] Required sections exist .................. PASS
+[04/14] Request trace references real files ...... PASS
+[05/14] Audit uses allowed classifications ....... PASS
+[06/14] Change impact completed .................. PASS
+
+Authorization
+[07/14] Unauthenticated request returns 401 ...... PASS
+[08/14] Owner requester receives 200 ............. PASS
+[09/14] Other requester receives 404 ............. PASS
+[10/14] Agent receives 200 ....................... PASS
+[11/14] Body/query userId cannot grant access .... PASS
+
+Boundaries and regression
+[12/14] Policy has no Express dependency ......... PASS
+[13/14] Regression suite passes .................. FAIL
+[14/14] No secrets included in submissions ....... PASS
+
+Cleanup
+Temporary validation data removed successfully.
+
+[FAIL] Regression suite passes
+
+Expected:
+npm test fully green (including your new regression tests)
+
+Received:
+the suite exited with failures
+
+FINAL RESULT: FAILED (13/14)
+
+--- Why check 13 reports FAIL on this machine (environment, not code) --------
+
+scripts/validate-class-09.js lines 301-302 execute the suite with a shell that
+only exists on Linux/macOS:
+
+    execSync(`node --test --test-concurrency=1 'test/*.test.js'`, {
+      cwd: ROOT, stdio: 'pipe', timeout: 240000, shell: '/bin/bash'
+    });
+
+On win32 the shell cannot be spawned, so the check fails BEFORE any test runs.
+Reproduction of the spawn failure alone:
+
+    node -e "try{require('child_process').execSync('echo hi',{shell:'/bin/bash'})}catch(e){console.log(e.code)}"
+    ENOENT
+
+(WSL is not installed on this machine, so the validator cannot be re-run under
+a real POSIX shell. The command below is the same suite on the same Node.) 
+
+--- Equivalent regression-suite run on this machine ---------------------------
+
+    node --test --test-concurrency=1 test/*.test.js
+
+Output tail:
+
+    tests 64
+    suites 0
+    pass 64
+    fail 0
+    cancelled 0
+    skipped 0
+    todo 0
+
+Includes the five BUG-901 regression tests:
+    test/request-detail.test.js        (foreign requester -> 404 REQUEST_NOT_FOUND,
+                                        same code as a missing request; ?userId= -> 404)
+    test/request-access-policy.test.js (canViewRequest: agent/owner -> true,
+                                        stranger -> false)
+
+Note: plain `npm test` on Windows reports 0 tests because cmd.exe does not
+expand the single-quoted glob 'test/*.test.js' used in package.json; the
+unquoted invocation above is what actually runs the suite. On the course's
+Linux environment (bash) the quoted glob expands correctly and the validator's
+check 13 command runs as designed.
+
+--- Runtime authorization checks (performed by checks 07-11 of the validator) -
+
+The validator's live HTTP checks all passed against the running API, i.e. the
+fix behaves correctly end-to-end: 401 without token, 200 for owner, 404 for a
+different requester, 200 for agent, and no userId body/query bypass. Temporary
+validation data was removed by the validator's cleanup step.
